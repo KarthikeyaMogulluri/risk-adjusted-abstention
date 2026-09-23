@@ -1,0 +1,487 @@
+================================================================================
+NOTE ON THIS PUBLISHED COPY
+This is the plan as written on 2026-09-20, BEFORE any data was downloaded or
+any code written. It is included unedited except for one redaction, marked
+in section 8, of a personal observation unrelated to the research.
+
+Read it for the pre-registration: the falsification condition, the eight
+pre-killed reviewer objections, and the definition of done were all fixed
+here, in advance. The study then refuted its own hypothesis and reported it.
+================================================================================
+
+================================================================================
+PROJECT BRIEF
+Risk-Adjusted Abstention for LLM-Assisted Root Cause Analysis in Kubernetes
+===========================================================================
+
+
+================================================================================
+1.  WHAT KIND OF PROJECT THIS IS
+================================================================================
+
+This is an ACADEMIC RESEARCH PAPER, not a software product.
+
+The output is a written paper plus a small reproducible code artifact. The
+code exists only to produce the numbers in the paper. Nobody will use the
+code as a tool, and it does not need to be beautiful, packaged, marketed or
+maintained. This is worth stating plainly because the instinct from the other
+projects in this vault is to build something usable. Resist it here. A paper
+that is 60% polished code and 40% argument is a failed paper.
+
+Research type:     Empirical + analytical (mixed)
+Field:             Software Engineering / Distributed Systems / AIOps
+Sub-area:          Reliability engineering, selective prediction, FinOps
+Paper class:       Short paper or workshop paper FIRST, full paper SECOND
+Target length:     4-6 pages (short) or 8-10 pages (full), venue decides
+Human dependency:  Almost none until submission (see section 8)
+
+Why "short paper first" and not the full thing:
+
+A full empirical paper requires running an LLM agent across 700+ labelled
+failure cases with ablations. That is four to eight weeks of work and real
+API spend. The stated timeline is days. So the first paper answers only the
+premise question, which requires NO agent runs at all - it is pure data
+analysis over telemetry that already exists in public benchmarks. It is
+cheap, honest, publishable, and it is the falsification gate for the larger
+study. If the premise fails, you learn it in three days instead of three
+months.
+
+
+================================================================================
+2.  THE PROBLEM STATEMENT
+================================================================================
+
+TITLE
+
+  Risk-Adjusted Abstention for LLM-Assisted Root Cause Analysis: Making the
+  Autonomy Threshold a Function of Error-Budget and Cost Stakes in Kubernetes
+
+STATEMENT
+
+  Kubernetes operations teams increasingly delegate incident diagnosis to
+  LLM-based agents, and the mechanism that makes this safe is a confidence
+  gate: the agent proposes a root cause with a confidence score, and a
+  threshold decides whether it acts autonomously or hands over to a human.
+
+  Prior work has concentrated on making that confidence score well
+  calibrated, and has treated the threshold itself as a fixed hyperparameter
+  applied uniformly across incidents.
+
+  This assumption is false in production. The cost of an incorrect autonomous
+  action on a low-traffic internal service and on a revenue-critical payment
+  path differ by orders of magnitude. A single threshold is therefore
+  simultaneously too conservative on cheap incidents and unsafe on expensive
+  ones.
+
+  This work reframes RCA autonomy as risk-sensitive selective prediction over
+  a three-way action space - act, assist, escalate - derives the abstention
+  threshold per incident from a loss function over error-budget burn,
+  infrastructure and revenue exposure, engineer time and inference cost, and
+  estimates every stake term from cluster telemetry rather than from
+  unavailable business-cost labels.
+
+  Evaluation on public microservice RCA benchmarks measures cost-weighted
+  regret against a perfect-information oracle and against the strongest
+  hindsight-tuned fixed threshold, with a sensitivity sweep over the cost
+  model.
+
+THE ONE CLAIM (if you can only say one thing)
+
+  The abstention threshold is not a constant. It is a function of what the
+  incident is worth, and treating it as a constant produces regret that grows
+  with the variance of stake across the incident population.
+
+FALSIFICATION CONDITION (write this into the paper before any result exists)
+
+  If the stake distribution across the benchmarks proves near-uniform, the
+  derived threshold collapses into the fixed baseline and the central
+  hypothesis is refuted. This is tested FIRST and it is a real gate on the
+  rest of the work.
+
+
+================================================================================
+3.  RESEARCH REQUIREMENTS
+================================================================================
+
+--------------------------------------------------------------------------------
+3.1  DATA REQUIREMENTS
+--------------------------------------------------------------------------------
+
+You build no testbed and inject no faults. Everything comes from published
+benchmarks. Two independent datasets minimum - a stake distribution shown on
+one dataset is an artifact, shown on two it is a finding.
+
+  PRIMARY      RCAEval  (RE1 / RE2 / RE3)
+               ~735 labelled failure cases
+               Systems: Sock Shop, Online Boutique, Train Ticket
+               Contains: per-service metrics, traces, logs, ground-truth
+               root cause, fault type and injection time
+               Why: peer-reviewed as a benchmark, pip-installable
+
+  SECOND       RCA100 / AIOps2025
+               500+ expert-labelled cases
+               Systems: HipsterShop, OpenTelemetry Demo Store
+               Why: different traffic shape, tests generality
+
+  OPTIONAL     Cloud-OpsBench
+               Agentic-RCA framing that matches the paper's framing
+               Use only if days 1-2 go faster than planned
+
+WHAT EACH CASE MUST CONTAIN for the stake estimator to work:
+
+  [ ] Per-service metric time series - CPU, memory, request rate, error
+      rate, latency percentiles
+  [ ] Replica or pod count over time (for replica-seconds -> cost)
+  [ ] Service dependency graph or call graph (for blast radius)
+  [ ] Ground-truth fault label - which service, what fault, when
+
+  RISK: if a dataset lacks replica counts, cost must be proxied from CPU and
+  memory usage instead. Check this on Day 1 before building anything.
+
+--------------------------------------------------------------------------------
+3.2  SOFTWARE REQUIREMENTS
+--------------------------------------------------------------------------------
+
+ANALYSIS STACK (all free, all pip)
+
+  Python 3.11+
+  uv                    dependency management, faster than poetry
+  pandas, numpy         data handling
+  scipy                 distributions, statistics
+  scikit-learn          calibration_curve, brier_score_loss
+  statsmodels           bootstrap confidence intervals
+  netcal                ECE, reliability diagrams
+                        (alternative: uncertainty-toolbox)
+  matplotlib            risk-coverage curves, all figures
+
+STAKE MODEL REFERENCES (you need the formulas and the citations, not the
+running services)
+
+  Sloth  or  Pyrra      SLO-as-code. Provides the standard multi-window
+                        multi-burn-rate recording rules. Use their rule
+                        definitions as your error-budget formula so a
+                        reviewer sees a standard tool, not a hand-rolled one.
+  OpenCost (CNCF)       Per-pod cost model from replica-seconds. Cite the
+                        project and reuse its cost formula.
+  FOCUS spec            FinOps Open Cost and Usage Specification. Cite as
+                        the schema your cost terms conform to.
+  AWS / GCP price lists Published on-demand unit prices as the constant.
+
+WRITING AND PUBLISHING
+
+  LaTeX                 via Overleaf (no local install needed)
+  Template              IEEEtran OR acmart - taken from the venue, never
+                        chosen from habit
+  Zotero                reference manager, exports BibTeX
+  Git + GitHub          code artifact
+  Zenodo                artifact DOI, links to the GitHub release
+
+RESERVED FOR THE FULL PAPER - DO NOT INSTALL THIS WEEK
+
+  kind or k3d           local Kubernetes cluster
+  Helm                  deploying the benchmark apps
+  Chaos Mesh            fault injection
+  k6 or Locust          load generation
+  Prometheus + Grafana  observability (already wired in agentic-cinema)
+  OpenTelemetry Collector
+  mcp-grafana           already working in agentic-cinema
+  Claude API            claude-opus-5 as the RCA agent
+  k8sgpt                open-source K8s RCA agent - use as a baseline
+  HolmesGPT             second open-source agent baseline
+
+--------------------------------------------------------------------------------
+3.3  HARDWARE REQUIREMENTS
+--------------------------------------------------------------------------------
+
+  SHORT PAPER (this week)
+    A laptop is enough. No GPU. No cluster. No cloud.
+    Disk: budget 100-200 GB free for the full RCAEval datasets. RE2 in
+    particular is large. CHECK THIS BEFORE DOWNLOADING - running out of
+    disk halfway through Day 1 is the single most likely way to lose a day.
+    RAM: 16 GB is comfortable for pandas over these time series.
+
+  FULL PAPER (later)
+    32 GB RAM to run kind with Train Ticket's 64 services, or a cloud VM.
+    Still no GPU - the LLM runs over an API.
+
+--------------------------------------------------------------------------------
+3.4  MONEY REQUIREMENTS
+--------------------------------------------------------------------------------
+
+  SHORT PAPER        Effectively zero.
+                     Datasets free. Tools open source. Overleaf free tier
+                     is enough. arXiv free. Zenodo free.
+
+  FULL PAPER         LLM API spend is the only real cost.
+                     Rough order: 735 cases x ~3 runs x ~50k tokens.
+                     Estimate this properly before committing - it is the
+                     one number that can make the full study unaffordable.
+                     Mitigation: run on a stratified sample of cases, not
+                     the whole benchmark, and say so.
+
+  PUBLICATION        Workshops are usually free or low fee. Some venues
+                     charge registration on acceptance. Check the fee
+                     BEFORE submitting, not after acceptance.
+
+--------------------------------------------------------------------------------
+3.5  KNOWLEDGE REQUIREMENTS - what you must read before writing
+--------------------------------------------------------------------------------
+
+This is the requirement most likely to be skipped and most likely to sink
+the paper. Reviewers can tell within a page whether you have read the
+theory you are standing on.
+
+  MUST READ - the theory backbone
+  [ ] Selective prediction / learning to defer. This is the field your
+      contribution actually belongs to. Your claim is a risk-sensitive
+      variant of a known problem, and if you do not cite it a reviewer
+      will assume you did not know it existed.
+  [ ] Calibration: ECE, reliability diagrams, temperature scaling.
+  [ ] Expected-cost decision theory - the basis for deriving a threshold
+      instead of choosing one.
+
+  MUST READ - the ground you are building on
+  [ ] PACE-LM / LM-PACE (arXiv 2309.05833, FSE 2024) - calibrated
+      confidence for cloud incident RCA. This is the paper you consume.
+      Read it properly; your related-work paragraph on it must be exact.
+  [ ] Auditable Graph-Guided RCA for Kubernetes (arXiv 2606.08590)
+  [ ] RCAEval (arXiv 2412.17015) - the benchmark paper
+  [ ] Cloud-OpsBench (arXiv 2603.00468)
+  [ ] Stalled, Biased and Confused (arXiv 2601.22208) - documented LLM
+      reasoning failures in exactly this task. Cite as the reason a gate
+      is needed at all.
+
+  MUST KNOW - SRE fundamentals
+  [ ] SLO, error budget, burn rate
+  [ ] Multi-window multi-burn-rate alerting (the Google SRE workbook
+      chapter is the standard reference)
+  [ ] MTTR and why it is a weak metric on its own
+
+--------------------------------------------------------------------------------
+3.6  ACCOUNTS AND ACCESS
+--------------------------------------------------------------------------------
+
+  [ ] Overleaf account
+  [ ] Zotero account
+  [ ] GitHub repository (public, for the artifact)
+  [ ] Zenodo account, linked to GitHub
+  [ ] arXiv account
+  [ ] ARXIV ENDORSEMENT - a first-time submitter to cs.SE may need an
+      endorsement from an existing arXiv author. CHECK THIS ON DAY 0.
+      It needs another person, so it is the step most likely to stall.
+      See section 8.
+
+
+================================================================================
+4.  WHAT WE ALREADY HAVE
+================================================================================
+
+  [x] The problem statement, scoped and defended
+  [x] A completed novelty scan - prior art mapped across five clusters,
+      two thirds of the original brief cut because it was already published
+  [x] The falsification condition, stated before any work began
+  [x] Identified benchmarks that need no testbed build
+  [x] The full toolchain decided, one tool per job
+  [x] agentic-cinema as a reusable rig for the FULL paper later:
+      telemetry pipeline, synthetic scenario generation, falsification
+      tests, Grafana/MCP wiring, scoring harness, and an S4 decoy scenario
+      whose correct answer is to page nobody - which is already an
+      abstention test case
+  [x] Prior experience taking a paper to LNCS/IEEE format
+      (quantum-vit-llm-medical)
+
+
+================================================================================
+5.  WHAT WE DO NOT HAVE YET
+================================================================================
+
+  [ ] The loss function written down. Nothing else can start.
+  [ ] A chosen venue. This decides page count, template and deadline.
+  [ ] Datasets downloaded and inspected
+  [ ] Confirmation that the datasets contain replica counts
+  [ ] The stake estimator code
+  [ ] The regret derivation
+  [ ] The reading in section 3.5
+  [ ] arXiv endorsement status - unknown
+  [ ] Author list and affiliation decided
+  [ ] A LaTeX project set up
+
+
+================================================================================
+6.  WHAT MORE WE NEED TO DO  -  ordered work list
+================================================================================
+
+--------------------------------------------------------------------------------
+DAY 0  (today, ~2 hours)  -  fix the contract
+--------------------------------------------------------------------------------
+  [ ] Write the loss function on ONE page. Every term, its unit, and where
+      the number comes from. A term with no measurable source is deleted,
+      not estimated. This page IS the stake estimator, before it is code.
+  [ ] Choose the venue. Write its deadline and page limit at the top of
+      the draft.
+  [ ] Check arXiv endorsement requirement for cs.SE. If endorsement is
+      needed, start asking today - it is the only step gated on another
+      human.
+  [ ] Check free disk space against the dataset sizes.
+  [ ] Create the LaTeX project with the venue's template and paste the
+      falsification condition into section 1.
+
+--------------------------------------------------------------------------------
+DAY 1  -  data down, estimator up
+--------------------------------------------------------------------------------
+  [ ] Download RCAEval and RCA100. Verify each contains the four required
+      fields from section 3.1.
+  [ ] Implement the stake vector per incident:
+        - error-budget burn rate against a uniform SLO
+        - infrastructure cost from replica-seconds x published unit price
+        - exposure proxy from request volume
+        - blast radius from dependency fan-out
+  [ ] CRITICAL DEFENCE, built in today: define the SLO UNIFORMLY across
+      every service - 99.9% availability plus one fixed latency objective.
+      You are not choosing per-service SLOs, so the variance in stake comes
+      from the data and not from your choices. State this explicitly in the
+      paper. It is what makes the entire analysis non-arbitrary.
+
+--------------------------------------------------------------------------------
+DAY 2  -  RQ1, the plot the paper lives or dies on
+--------------------------------------------------------------------------------
+  [ ] Plot the stake distribution across BOTH datasets.
+  [ ] SUCCESS: stakes span two or more orders of magnitude and the
+      distribution is heavy-tailed. Continue.
+  [ ] FAILURE: stakes are near-uniform. STOP AND SAY SO. A clean negative
+      result on a premise the field assumes is publishable, and you have
+      already done exactly this once on the quantum ViT paper.
+
+--------------------------------------------------------------------------------
+DAY 3  -  the analytical result
+--------------------------------------------------------------------------------
+  [ ] Derive the regret bound: regret of a fixed threshold grows with the
+      variance of stake. Closed form, no experiments.
+  [ ] Run a SIMULATION - not an agent. Sweep a synthetic confidence signal
+      at realistic calibration levels over the REAL stake distribution,
+      and compare fixed vs derived thresholds. Label it as simulation
+      everywhere it appears.
+
+--------------------------------------------------------------------------------
+DAY 4  -  figures and the generous baseline
+--------------------------------------------------------------------------------
+  [ ] Four figures, no more:
+        1. stake distribution, both datasets
+        2. threshold vs stake curve
+        3. risk-coverage stratified by stake decile
+        4. sensitivity sweep over the cost model
+  [ ] Implement the real opponent: the hindsight-tuned optimal fixed
+      threshold, tuned ON THE TEST SET. Give it an unfair advantage on
+      purpose. Beating an untuned threshold proves nothing.
+
+--------------------------------------------------------------------------------
+DAY 5  -  write
+--------------------------------------------------------------------------------
+  [ ] Write in this order: RQ1 result -> problem statement -> related work
+      -> method -> evaluation -> introduction -> abstract.
+      Introduction and abstract LAST, always. They are promises, and you
+      can only promise what you have already delivered.
+
+--------------------------------------------------------------------------------
+DAY 6  -  kill your own paper, then ship
+--------------------------------------------------------------------------------
+  [ ] Read it for two hours as a hostile reviewer. Fix what breaks.
+  [ ] Push the code artifact to GitHub, mint a Zenodo DOI.
+  [ ] Submit preprint to arXiv (cs.SE, cross-list cs.DC).
+
+--------------------------------------------------------------------------------
+AFTER  -  the full paper
+--------------------------------------------------------------------------------
+  [ ] Estimate LLM API cost properly
+  [ ] Stand up kind + Chaos Mesh, or reuse the agentic-cinema rig
+  [ ] Run the real agent across a stratified sample
+  [ ] Add k8sgpt and HolmesGPT as agent baselines
+  [ ] Full ablations, then a full-length venue
+
+
+================================================================================
+7.  ERRORS TO PRE-KILL
+================================================================================
+
+Each of these is a way the paper dies. Each already has a counter built
+into the plan above.
+
+  "Your cost model is arbitrary"
+      -> OpenCost + FOCUS + published prices. And note that the RANKING is
+         invariant to the price constant - the multiplier cancels out, so
+         only ordering matters.
+
+  "You cherry-picked SLOs to manufacture variance"
+      -> Uniform SLO across every service, declared before the analysis.
+
+  "This is just PACE-LM with extra steps"
+      -> You CONSUME calibration and CONTRIBUTE the threshold. Cited in
+         related work, never claimed as yours.
+
+  "One dataset, one artifact"
+      -> Two independent populations with different traffic shapes.
+
+  "You beat a strawman baseline"
+      -> The opponent is the hindsight-tuned optimal fixed threshold.
+
+  "Accuracy looks about the same"
+      -> Primary metric is cost-weighted regret. Accuracy is reported and
+         explicitly argued to be the wrong lens.
+
+  "The gains vanish under different assumptions"
+      -> Sensitivity sweep, with the breakdown point stated openly.
+
+  "Simulated confidence is not real confidence"
+      -> Labelled as simulation in the section heading. The full agent
+         study is named as the follow-up. Do not oversell. Reviewers
+         forgive limited scope; they never forgive spin.
+
+
+================================================================================
+8.  THE HUMAN-DEPENDENCY MAP
+================================================================================
+
+[A sentence characterising the author's personal working patterns has been
+redacted from the published copy. It observed that this project's schedule
+risk sat in the steps requiring another person rather than the technical
+ones.] Those steps are therefore listed separately below and moved to the
+FRONT of the schedule instead of the end.
+
+  NEEDS ANOTHER PERSON:
+    - arXiv endorsement for cs.SE, if required        -> DO ON DAY 0
+    - Co-author / supervisor sign-off, if any         -> decide on DAY 0
+    - Affiliation and author list confirmation        -> decide on DAY 0
+    - Venue submission account, if institutional      -> check on DAY 0
+
+  NEEDS NOBODY:
+    - Everything else. Days 1 through 6 are entirely solo, offline, and
+      free. The critical path of this project has no human dependency at
+      all, which is the main structural reason it is likely to finish.
+
+  Get all four of the above unblocked on Day 0 or accept that Day 6 will
+  slip by however long they take.
+
+
+================================================================================
+9.  DELIVERABLES
+================================================================================
+
+  1. The paper - 4 to 6 pages, venue template, arXiv preprint
+  2. Code artifact - GitHub repo, reproducible, Zenodo DOI
+  3. Four figures
+  4. A note in the vault recording whether RQ1 passed or failed
+
+
+================================================================================
+10.  DEFINITION OF DONE
+================================================================================
+
+  A preprint is on arXiv with a DOI-linked artifact, and the RQ1 result -
+  pass or fail - is written down honestly.
+
+  If RQ1 fails, the project is still DONE and still successful. A refuted
+  premise, published, is worth more than an unpublished one nobody tested.
+
+================================================================================
+END OF BRIEF
+================================================================================

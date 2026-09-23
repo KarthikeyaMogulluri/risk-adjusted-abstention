@@ -1,0 +1,33 @@
+# Data: ~1 GB, reproducibly downloadable via code/download*.py
+data/
+
+# The manuscript. Kept OUT of the public repo: an unsubmitted paper on a
+# public remote can count as prior publication at some venues. It stays on
+# disk; only the code that produces its numbers is published.
+paper/
+
+# Generated
+figures/
+paper/figures/*.png
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Never commit credentials
+.env
+*.key
+**/ANTHROPIC_API_KEY*
+
+# The working copies at the repo ROOT are Obsidian-flavoured and link into a
+# private vault. The PUBLISHED versions live in docs/ -- converted to GitHub
+# markdown, wikilinks resolved, one personal observation redacted.
+# These patterns are anchored with a leading slash so docs/ is NOT matched.
+/2026-*.md
+/PROJECT-BRIEF.txt
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

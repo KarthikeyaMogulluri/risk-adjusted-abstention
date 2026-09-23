@@ -1,0 +1,7 @@
+# Normalise line endings so the repo is identical on Windows, macOS and Linux.
+* text=auto eol=lf
+
+# Binary — never touch
+*.pdf binary
+*.parquet binary
+*.png binary

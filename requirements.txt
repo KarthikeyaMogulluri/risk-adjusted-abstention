@@ -1,0 +1,10 @@
+# Core analysis — everything except the optional agent study
+numpy>=1.26
+pandas>=2.1
+pyarrow>=14.0
+scipy>=1.11
+matplotlib>=3.8
+requests>=2.31
+
+# Optional: the agent study (code/agent.py). Needs ANTHROPIC_API_KEY.
+anthropic>=0.40
