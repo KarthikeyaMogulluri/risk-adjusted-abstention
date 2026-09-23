@@ -8,11 +8,34 @@ cannot be made to.**
 A complete, reproducible research study: three proved theorems, two independent
 datasets, 352 real failures, and a hypothesis that its own authors refuted.
 
+**In the vocabulary of the field:** this is a study of **risk-sensitive
+selective prediction** for **LLM-assisted root cause analysis (RCA)** in
+**Kubernetes** microservice deployments. It derives a per-incident
+**abstention threshold** over a three-way action space from a loss function on
+**SLO error-budget burn rate**, infrastructure cost and **blast radius**, all
+estimated from **OpenTelemetry**-style **telemetry** rather than from
+business-cost labels. It evaluates against a **perfect-information oracle**
+using **cost-weighted regret**, **risk–coverage curves** and **expected
+calibration error (ECE)**, on two chaos-injection **AIOps** benchmarks.
+
+Keywords: AIOps · LLM agents · root cause analysis · selective prediction ·
+learning to defer · abstention · confidence calibration · site reliability
+engineering · service level objectives · error budgets · FinOps · Kubernetes ·
+microservices · observability · negative results · pre-registration
+
 > [!NOTE]
 > **The manuscript is not in this repository.** It is under preparation, and an
 > unsubmitted paper on a public remote can count as prior publication at some
 > venues. Everything that *produces* its numbers is here, and
 > `verify_paper.py` checks all 43 of them.
+
+> [!IMPORTANT]
+> **No large language model is run in the results reported here.** The agent's
+> confidence signal is simulated at calibration levels reported in the
+> literature; the stake side is measured from real telemetry. A complete
+> harness for running a real LLM agent ships in `code/agent.py`
+> ([§9](#9-the-agent-study-optional-costs-money)) — it has not been run, and
+> the repository title deliberately does not claim "LLM-assisted" results.
 
 ---
 
@@ -87,6 +110,13 @@ Read the right-hand side as *how asymmetric automation is*. Read the left as
 So a single fixed threshold isn't merely suboptimal — it's **wrong in both
 directions at once**, and no amount of conservative tuning fixes that. That
 result (Proposition 2) is proved in the write-up and verified numerically here.
+
+Formally this is **selective prediction with a reject option** (Chow, 1970)
+made **risk-sensitive**: the cost of deferring is not a constant but a measured
+property of the instance. Instance-dependent deferral costs already exist in
+the **learning-to-defer** literature; what is new here is deriving them from
+operational telemetry, and characterising the *shape* of the resulting
+threshold — which turns out to be non-monotone.
 
 ---
 
@@ -363,8 +393,9 @@ Anything else means code and paper have diverged. Treat as a bug in one.
 
 ## 9. The agent study (optional, costs money)
 
-The pipeline takes `(q, Y, ρ, D, Tₑ)`. Only `q` and `Y` — the agent's
-confidence and whether it was right — are simulated in the paper. This
+The pipeline takes `(q, Y, ρ, D, Tₑ)`. Only `q` and `Y` — the **large
+language model** agent's self-reported confidence and whether its root-cause
+hypothesis was correct — are simulated in the write-up. This
 replaces them with a real model. Nothing else changes, so any shift in
 conclusions is attributable to the confidence signal alone.
 
@@ -381,6 +412,11 @@ claude-opus-4-5      $ 11.10
 ```
 
 **Then:**
+
+The agent is prompted with a deterministic per-service anomaly report and
+replies through a **structured tool call** (`root_cause_service`,
+`fault_type`, `confidence`, `reasoning`), so parsing is exact and the
+confidence is a first-class field rather than something scraped from prose.
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...          # Windows: set ANTHROPIC_API_KEY=...
