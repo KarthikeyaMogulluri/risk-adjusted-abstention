@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you use this software or its findings, please cite it as below."
+title: "Risk-Adjusted Abstention for Root Cause Analysis"
+abstract: >-
+  A pre-registered study of risk-sensitive selective prediction for
+  LLM-assisted root cause analysis in Kubernetes. Derives a per-incident
+  abstention threshold from SLO error-budget burn, infrastructure cost and
+  blast radius, all estimated from telemetry rather than business-cost labels,
+  and proves the threshold's dependence on incident stake changes sign at an
+  interpretable boundary. Evaluated on two independent AIOps benchmarks
+  (RCAEval RE1 and RCA100, 352 labelled failures), the hypothesis is refuted:
+  the derived threshold loses to a hindsight-tuned constant on both corpora,
+  and the sign of the result is set by an exchange rate no telemetry supplies.
+authors:
+  - family-names: Mogulluri
+    given-names: Karthikeya
+type: software
+license: MIT
+repository-code: "https://github.com/KarthikeyaMogulluri/risk-adjusted-abstention"
+keywords:
+  - AIOps
+  - root cause analysis
+  - selective prediction
+  - learning to defer
+  - abstention
+  - confidence calibration
+  - site reliability engineering
+  - service level objectives
+  - error budgets
+  - Kubernetes
+  - microservices
+  - large language models
+  - negative results
+  - pre-registration

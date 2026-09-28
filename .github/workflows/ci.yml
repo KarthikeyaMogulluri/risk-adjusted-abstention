@@ -1,0 +1,63 @@
+name: verify
+
+# Runs the parts that need no data. The benchmark corpora are ~1 GB and are
+# downloaded on demand, so CI cannot run verify_paper.py -- but it CAN check
+# the two propositions the whole paper rests on, which is the part worth
+# guarding. If Proposition 2 ever stops holding, this goes red.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  propositions:
+    name: propositions (py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy scipy pandas pyarrow matplotlib requests
+
+      - name: Proposition 1 and 2 — analytic vs finite difference
+        working-directory: code
+        run: python policy.py
+
+      - name: Topology — graph integrity and blast radius
+        working-directory: code
+        run: python topology.py
+
+      - name: Everything imports
+        working-directory: code
+        run: |
+          python -c "
+          import importlib, sys
+          mods = ['policy','stakes','topology','evaluate','rebalance',
+                  'rcaeval_loader','rca100_loader','summarise','agent',
+                  'agent_results','figures','compare','verify_paper',
+                  'run_rq1','download','download_rca100','run_all']
+          bad = []
+          for m in mods:
+              try:
+                  importlib.import_module(m)
+              except Exception as e:
+                  bad.append(f'{m}: {type(e).__name__}: {e}')
+          if bad:
+              print('FAILED IMPORTS'); [print(' ', b) for b in bad]; sys.exit(1)
+          print(f'all {len(mods)} modules import cleanly')
+          "

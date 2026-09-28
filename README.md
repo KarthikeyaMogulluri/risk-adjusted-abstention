@@ -1,5 +1,10 @@
 # Risk-Adjusted Abstention for Root Cause Analysis
 
+[![verify](https://github.com/KarthikeyaMogulluri/risk-adjusted-abstention/actions/workflows/ci.yml/badge.svg)](https://github.com/KarthikeyaMogulluri/risk-adjusted-abstention/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![Pre-registered](https://img.shields.io/badge/hypothesis-pre--registered%20%E2%86%92%20REFUTED-c2410c.svg)](docs/2026-09-21_rq1-refuted-and-why-that-is-the-result.md)
+
 **When an AI diagnoses a broken server, it has to decide whether to fix things
 itself or wake a human. This project asks whether that decision should depend
 on how expensive the outage is — and finds that on every public benchmark, it
