@@ -1,6 +1,6 @@
 ================================================================================
 ANALYSIS CODE
-Risk-Adjusted Abstention for LLM-Assisted Root Cause Analysis
+Risk-Adjusted Abstention for Root Cause Analysis
 ================================================================================
 Created: 2026-09-21
 
