@@ -60,6 +60,11 @@ microservices · observability · negative results · pre-registration
 12. [Troubleshooting](#12-troubleshooting)
 13. [Research journal](#13-research-journal)
 
+> **Looking for the full reference?** [`GUIDE.md`](GUIDE.md) documents every
+> module, every parameter, every command flag, the mathematics, the output
+> fields, how to extend it, and a glossary. This README is the orientation;
+> that is the manual.
+
 ---
 
 ## 1. The problem, in plain English
