@@ -20,6 +20,8 @@ this is the reference. Nothing here assumes you have read the paper.
 11. [Troubleshooting](#11-troubleshooting)
 12. [Glossary](#12-glossary)
 13. [FAQ](#13-faq)
+14. [Complete file manifest](#14-complete-file-manifest)
+14. [Complete file manifest](#14-complete-file-manifest)
 
 ---
 
@@ -742,3 +744,86 @@ own numbers first. Below that, the evidence here says a gate subtracts value.
 **What would change the conclusion?**
 A corpus with both cluster dynamics and traffic telemetry. None of the three
 examined has both. That is the open problem this work hands forward.
+
+---
+
+## 14. Complete file manifest
+
+Every file in the repository, 44 in total. Nothing here is undocumented.
+
+### Repository root
+
+| File | Purpose |
+|---|---|
+| `README.md` | Orientation — what this is, what was found, how to run it |
+| `GUIDE.md` | This file. The complete reference |
+| `LICENSE` | MIT. The datasets carry their own licences |
+| `requirements.txt` | Six core packages; `anthropic` optional, agent study only |
+| `CITATION.cff` | Machine-readable citation metadata. Drives GitHub's "Cite this repository" button |
+| `.gitignore` | Excludes `data/` (~1 GB, downloadable), `figures/` (generated), `paper/` (unsubmitted manuscript), credentials, and the Obsidian working copies of the journal |
+| `.gitattributes` | `* text=auto eol=lf` so the repo is byte-identical across Windows, macOS and Linux; PDFs and parquet marked binary |
+
+### `.github/`
+
+| File | Purpose |
+|---|---|
+| `workflows/ci.yml` | Runs Propositions 1 and 2 against a finite difference, checks topology integrity, and imports all modules, on Python 3.11 and 3.12. Deliberately does **not** run `verify_paper.py`, which needs the corpora |
+
+### `code/` — 20 files
+
+| File | Purpose |
+|---|---|
+| `README.txt` | A short orientation for the code directory alone, including the ordering-violation finding that needs a decision |
+| `policy.py` | **The mathematics.** Both thresholds, the sign flip, the three-way policy. Self-verifying — run first |
+| `stakes.py` | Stake composition (Eq. 12–13) and `StakeParams` |
+| `topology.py` | Static call graphs; blast radius. Train Ticket deliberately unsupported |
+| `rcaeval_loader.py` | RCAEval, wide format. Schema detected **per file** |
+| `rca100_loader.py` | RCA100, long format. Shares nothing with the above but the equations |
+| `rebalance.py` | p90 calibration and the simplex sweep |
+| `evaluate.py` | Realised cost, oracle, five baselines, regret, ECE, risk–coverage |
+| `run_rq1.py` | The pre-registered gate |
+| `compare.py` | Cross-corpus comparison and the burn-dominance sweep |
+| `verify_paper.py` | Recomputes all 43 claimed numbers and fails loudly on divergence |
+| `figures.py` | The four figures → `figures/` |
+| `run_all.py` | Everything, in order, stopping at the first failure |
+| `download.py` | RCAEval acquisition, resumable |
+| `download_rca100.py` | RCA100 acquisition, lean by default |
+| `probe_rca100.py` | One-off reachability probe, kept for provenance |
+| `cloudops_probe.py` | Field verification for the rejected third corpus |
+| `summarise.py` | Deterministic telemetry → agent context |
+| `agent.py` | The agent study. Needs an API key |
+| `agent_results.py` | Real `(q, Y)` → the verified pipeline |
+
+### `docs/` — 16 files
+
+`README.md` indexes all 14 journal entries plus the project brief. The entries
+are the working notes kept while the study ran, published because the
+provenance is the point: the hypothesis was pre-registered and then refuted by
+its own authors.
+
+| File | What it records |
+|---|---|
+| `README.md` | Index of the journal, with the three entries worth reading first |
+| `PROJECT-BRIEF.txt` | The plan written **before** any data existed. One personal observation redacted, visibly marked |
+| `2026-09-20_problem-statement-market-validation.md` | The novelty scan that cut two thirds of the original brief |
+| `2026-09-20_problem-statement-final.md` | The problem statement in three lengths |
+| `2026-09-21_loss-function-page.md` | Every cost term with a unit and a source; where the sign flip was found |
+| `2026-09-21_rcaeval-day1-field-verification.md` | What the first dataset actually contains |
+| `2026-09-21_first-results-and-the-one-term-problem.md` | A flat sensitivity sweep read as a defect, not a triumph |
+| `2026-09-21_rq1-refuted-and-why-that-is-the-result.md` | **The reversal.** A parser bug and a degenerate cost model |
+| `2026-09-21_rca100-replicates-the-refutation.md` | The second corpus, and the salvage that does not transfer |
+| `2026-09-21_four-figures-and-one-replaced.md` | Three figure defects found by looking |
+| `2026-09-21_clearing-the-markers.md` | What filling in the placeholders revealed |
+| `2026-09-21_compiling-and-the-heredoc-corruption.md` | A shell-escaping bug that reached the source |
+| `2026-09-21_verifying-every-citation.md` | Three citations that were wrong |
+| `2026-09-21_pre-submission-rescan.md` | The first pre-submission novelty scan |
+| `2026-09-21_owning-the-three-action-contradiction.md` | Deriving where a collapsed contribution stops being collapsed |
+| `2026-10-29_market-recheck-and-honest-positioning.md` | The October re-scan; three adjacent papers, none a scoop |
+
+### Not in the repository
+
+| | Why |
+|---|---|
+| `data/` | ~1 GB. Reproducible via `download.py` and `download_rca100.py`, both resumable |
+| `figures/` | Generated. `python figures.py` recreates all four |
+| `paper/` | Unsubmitted manuscript. On a public remote it can count as prior publication at some venues. Held in a separate private repository |
