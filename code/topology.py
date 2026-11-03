@@ -1,5 +1,5 @@
 """
-Static service dependency graphs -- the blast-radius term in Eq. (13).
+Static service dependency graphs -- the blast-radius term in Eq. (11).
 
 WHY STATIC RATHER THAN TRACE-DERIVED
 ------------------------------------

@@ -1,8 +1,8 @@
 """
 Stake estimation from telemetry -- Section 4 of the paper, executable.
 
-    rho_i = rho_infra_i + lambda_exp * r_fail_i + lambda_slo * b_i     Eq. (12)
-    D_i   = kappa * |down(i)| * mean_stake                             Eq. (13)
+    rho_i = rho_infra_i + lambda_exp * r_fail_i + lambda_slo * b_i     Eq. (10)
+    D_i   = kappa * |down(i)| * mean_stake                             Eq. (11)
 
 Every term comes from something an instrumented cluster emits. No term
 requires a business-cost label. That is what makes the method evaluable on
@@ -44,7 +44,7 @@ class StakeParams:
 
 
 # ---------------------------------------------------------------------------
-# Components of Eq. (12)
+# Components of Eq. (10)
 # ---------------------------------------------------------------------------
 
 def infra_rate(replica_count: np.ndarray, sp: StakeParams) -> np.ndarray:
@@ -82,13 +82,13 @@ def burn_rate(requests_total: np.ndarray, failed: np.ndarray,
 
 
 def compose_stake(rho_infra, r_fail, b, sp: StakeParams) -> np.ndarray:
-    """Eq. (12)."""
+    """Eq. (10)."""
     return rho_infra + sp.lambda_exp * r_fail + sp.lambda_slo * b
 
 
 def collateral_damage(downstream_count: np.ndarray, rho: np.ndarray,
                       sp: StakeParams) -> np.ndarray:
-    """Eq. (13). A LEVEL, not a rate -- it does not scale with duration.
+    """Eq. (11). A LEVEL, not a rate -- it does not scale with duration.
 
     That asymmetry against rho, which does scale with duration, is precisely
     what produces the sign flip in Proposition 2.

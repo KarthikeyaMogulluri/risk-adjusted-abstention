@@ -19,6 +19,8 @@ GROUPS
               rendered text. These catch the escape-conversion bug class.
     ieee      template, abstract length, float captions and placement,
               figure and table cross-references, Fig. vs Figure.
+    eqnums    equation numbers cited in code docstrings against the built
+              paper, which renumbers whenever it is restructured.
     refs      citations resolve both ways against refs.bib.
     figures   each figure's scale factor on the page.
     voice     punctuation density and sentence shape, against ranges that
@@ -200,6 +202,44 @@ def g_ieee(src: str, txt: str) -> None:
     check(not orphan, "every float cited in the text", ", ".join(orphan))
 
 
+def g_eqnums() -> None:
+    """Equation numbers cited in code docstrings against the built paper.
+
+    Equations renumber whenever the paper is restructured, and nothing used to
+    connect the two. policy.py spent a while pointing at Eq. (7) for a formula
+    that had become Eq. (5), sending anyone reading code beside paper to the
+    wrong equation every time.
+    """
+    head("EQUATION NUMBERS -- code docstrings against the built paper")
+    aux = PAPER / "build" / "main.aux"
+    if not aux.exists():
+        note("no build/main.aux", "build the paper to check equation numbers")
+        return
+    num = dict(re.findall(r"newlabel\{(eq:[^}]+)\}\{\{([^}]+)\}",
+                          io.open(aux, encoding="utf-8", errors="replace").read()))
+    # which label each module's cited equation should correspond to
+    expect = {
+        "policy.py": {"5": "eq:tauact", "6": "eq:tauass", "8": "eq:signflip"},
+        "stakes.py": {"10": "eq:stake", "11": "eq:damage"},
+        "topology.py": {"11": "eq:damage"},
+    }
+    for mod, mapping in expect.items():
+        p = HERE / mod
+        if not p.exists():
+            continue
+        cited = set(re.findall(r"Eq\. \((\d+)\)",
+                               io.open(p, encoding="utf-8").read()))
+        stale = sorted(c for c in cited
+                       if c in mapping and num.get(mapping[c]) != c)
+        unknown = sorted(c for c in cited if c not in mapping)
+        check(not stale, "%s equation numbers current" % mod,
+              "" if not stale else "cites Eq. %s, paper says otherwise"
+              % ", ".join(stale))
+        if unknown:
+            print("         (also cites Eq. %s, not cross-checked)"
+                  % ", ".join(unknown))
+
+
 def g_refs(src: str) -> None:
     head("REFERENCES -- both directions")
     cited = set()
@@ -288,8 +328,8 @@ def g_voice(src: str) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--group", choices=("hygiene", "ieee", "refs", "figures",
-                                        "voice"),
+    ap.add_argument("--group", choices=("hygiene", "ieee", "eqnums", "refs",
+                                        "figures", "voice"),
                     help="run one group instead of all")
     ap.add_argument("--quiet", action="store_true",
                     help="suppress output; exit code only")
@@ -302,6 +342,7 @@ def main() -> int:
     groups = {
         "hygiene": lambda: g_hygiene(src_raw, src, txt),
         "ieee": lambda: g_ieee(src, txt),
+        "eqnums": lambda: g_eqnums(),
         "refs": lambda: g_refs(src),
         "figures": lambda: g_figures(src),
         "voice": lambda: g_voice(src),

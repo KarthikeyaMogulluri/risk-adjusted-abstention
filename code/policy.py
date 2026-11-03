@@ -4,9 +4,9 @@ Thresholds and the three-way policy.
 This module is the executable form of Section 3 of the paper. Every formula
 here has a numbered equation in main.tex and the names match the notation.
 
-    tau_act      Eq. (7),  Proposition 1
-    tau_assist   Eq. (8),  Proposition 1
-    sign_flip    Eq. (10), Proposition 2
+    tau_act      Eq. (5),  Proposition 1
+    tau_assist   Eq. (6),  Proposition 1
+    sign_flip    Eq. (8), Proposition 2
 
 The self-test at the bottom VERIFIES PROPOSITION 2 NUMERICALLY. Run it before
 trusting anything downstream -- if the derivative in the paper is wrong, this
@@ -61,7 +61,7 @@ class CostParams:
 # ---------------------------------------------------------------------------
 
 def tau_act(rho: np.ndarray, D: np.ndarray, p: CostParams) -> np.ndarray:
-    """Eq. (7). Confidence above which acting beats escalating.
+    """Eq. (5). Confidence above which acting beats escalating.
 
     rho : stake, USD/s, per incident
     D   : collateral damage of a wrong autonomous action, USD, per incident
@@ -72,7 +72,7 @@ def tau_act(rho: np.ndarray, D: np.ndarray, p: CostParams) -> np.ndarray:
 
 
 def tau_assist(rho: np.ndarray, p: CostParams) -> np.ndarray:
-    """Eq. (8). Confidence above which assisting beats escalating.
+    """Eq. (6). Confidence above which assisting beats escalating.
 
     No D term: a human reviews the hypothesis before anything changes, so
     assisting causes no collateral damage. This is why assist sits below act.
@@ -88,7 +88,7 @@ def tau_assist(rho: np.ndarray, p: CostParams) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 def dtau_dstake_sign(D: np.ndarray, p: CostParams) -> np.ndarray:
-    """Sign of d(tau_act)/d(rho). Eq. (10).
+    """Sign of d(tau_act)/d(rho). Eq. (8).
 
     Positive  ->  higher stake demands higher confidence (the intuitive case)
     Negative  ->  higher stake demands LOWER confidence, because waiting for a
@@ -101,12 +101,12 @@ def dtau_dstake_sign(D: np.ndarray, p: CostParams) -> np.ndarray:
 
 
 def boundary_ratio(D: np.ndarray, p: CostParams) -> np.ndarray:
-    """LHS of Eq. (10): D / (w * H_e). Compare against delta^-/delta^+."""
+    """LHS of Eq. (8): D / (w * H_e). Compare against delta^-/delta^+."""
     return D / p.wHe
 
 
 def automation_asymmetry(p: CostParams) -> float:
-    """RHS of Eq. (10): Delta^- / Delta^+."""
+    """RHS of Eq. (8): Delta^- / Delta^+."""
     return p.delta_minus_act / p.delta_plus_act
 
 
@@ -141,7 +141,7 @@ ACTION_NAMES = {ACT: "act", ASSIST: "assist", ESCALATE: "escalate"}
 
 def derived_policy(q: np.ndarray, rho: np.ndarray, D: np.ndarray,
                    p: CostParams) -> tuple[np.ndarray, dict]:
-    """Eq. (11). Returns (actions, diagnostics).
+    """Eq. (7). Returns (actions, diagnostics).
 
     Diagnostics reports the fraction of incidents where tau_assist > tau_act.
     That ordering is NOT guaranteed (Sec 3.6). Where it fails, assist is
@@ -206,7 +206,7 @@ def _verify_proposition_2(seed: int = 0, n: int = 20000) -> None:
 
     assert agree.all(), (
         f"Proposition 2 FAILS on {np.sum(~agree)}/{live.sum()} points. "
-        "The derivative in main.tex Eq. (10) is wrong."
+        "The derivative in main.tex Eq. (8) is wrong."
     )
     print(f"  Proposition 2 verified on {live.sum():,} points "
           f"across 7 decades of stake and 8 of damage.")
