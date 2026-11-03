@@ -65,7 +65,13 @@ def main() -> None:
     plan.append(("Verify all 43 paper numbers", ["verify_paper.py"],
                  not a.quick))
     if not a.quick:
-        plan.append(("Regenerate the four figures", ["figures.py"], True))
+        # fig_mechanism.py draws Figure 1 and nothing else does, so leaving it
+        # out meant a fresh clone could run this to completion and still not
+        # be able to build the paper
+        plan += [
+            ("Regenerate the measured figures", ["figures.py"], True),
+            ("Regenerate Figure 1 (the mechanism)", ["fig_mechanism.py"], True),
+        ]
 
     total = len(plan)
     spent = 0.0

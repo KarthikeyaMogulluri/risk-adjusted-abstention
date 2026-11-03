@@ -348,7 +348,8 @@ python download_rca100.py                              # RCA100, ~62 MB
 python run_rq1.py --dataset rcaeval --root ../data     # the gate
 python compare.py                                      # both corpora
 python verify_paper.py                                 # all 43 claimed numbers
-python figures.py                                      # four PDFs -> figures/
+python figures.py                                      # 3 -> paper/figures/, 1 -> figures/
+python fig_mechanism.py                                # Figure 1 -> paper/figures/
 ```
 
 ---
@@ -485,7 +486,10 @@ download_rca100.py          rca100_loader.py ──┤   (separate loaders,
 | `run_rq1.py` | The pre-registered gate |
 | `compare.py` | Cross-corpus comparison |
 | `verify_paper.py` | Recomputes all 43 claimed numbers |
-| `figures.py` | The four figures -> `figures/` |
+| `figures.py` | Measured figures. Three to `paper/figures/`, plus a risk-coverage plot to `figures/` that the eight-page manuscript has no room for |
+| `fig_mechanism.py` | Figure 1, the mechanism -> `paper/figures/`. Asserts the drawn regime boundary matches Proposition 2 |
+| `probe_rca100.py` | RCA100 schema probe, run before the loader was written |
+| `cloudops_probe.py` | Cloud-OpsBench field verification, 48-case stratified sample |
 | `summarise.py` | Telemetry → agent context, deterministic |
 | `agent.py` | The agent study |
 | `agent_results.py` | Real (q, Y) → the verified pipeline |
@@ -520,7 +524,7 @@ download_rca100.py          rca100_loader.py ──┤   (separate loaders,
 | `ANTHROPIC_API_KEY is not set` | Only `agent.py` needs it. Everything else runs without |
 | RCA100 download stalls | `aiops.cn` GitLab is slow for answer keys. Resumable — re-run |
 | `NotImplementedError` in `topology.py` | You asked for Train Ticket. Not supported by design |
-| Figures look wrong after edits | `python figures.py` regenerates all four |
+| Figures look wrong after edits | `python figures.py` and `python fig_mechanism.py` regenerate every figure |
 | Numbers change after editing a module | Stale bytecode. `rm -rf code/__pycache__` and re-run — this bit us once and produced a wrong cross-check |
 | `249` vs `248` RCAEval cases | Both correct — see [the datasets](#5-the-datasets). Different window requirements |
 

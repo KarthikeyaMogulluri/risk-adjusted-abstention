@@ -331,7 +331,8 @@ exists.
 | `python compare.py` | Cross-corpus comparison, all sweeps |
 | `python rebalance.py` | λ calibration + simplex sweep |
 | `python verify_paper.py` | Recompute all 43 claimed numbers |
-| `python figures.py` | Four vector PDFs → `figures/` |
+| `python figures.py` | Measured figures: three vector PDFs → `paper/figures/`, one → `figures/` |
+| `python fig_mechanism.py` | Figure 1 → `paper/figures/` |
 | `python cloudops_probe.py --sample 48` | Cloud-OpsBench field verification |
 
 `run_rq1.py` takes `--dataset {rcaeval,rca100}` and `--root`.
@@ -676,7 +677,7 @@ exactly this reason.
 | `NotImplementedError` in `topology.py` | You asked for Train Ticket. Unsupported by design |
 | Numbers change after editing a module | **Stale bytecode.** `rm -rf code/__pycache__` and re-run. This once produced a wrong cross-check |
 | `249` vs `248` RCAEval cases | Both correct — different window requirements. See §4.1 |
-| Figures look wrong after edits | `python figures.py` regenerates all four |
+| Figures look wrong after edits | `python figures.py` and `python fig_mechanism.py` regenerate every figure |
 | Proposition 2 fails after parameter change | Your parameters are outside the model's valid range |
 | Unicode errors on Windows | `PYTHONIOENCODING=utf-8` before the command |
 
@@ -784,7 +785,8 @@ Every file in the repository, 44 in total. Nothing here is undocumented.
 | `run_rq1.py` | The pre-registered gate |
 | `compare.py` | Cross-corpus comparison and the burn-dominance sweep |
 | `verify_paper.py` | Recomputes all 43 claimed numbers and fails loudly on divergence |
-| `figures.py` | The four figures → `figures/` |
+| `figures.py` | The measured figures. Three go to `paper/figures/`; `fig3_risk_coverage` goes to `figures/`, since the eight-page manuscript has no room for it |
+| `fig_mechanism.py` | Figure 1, the mechanism. Drawn at the column width it prints at, and asserts its regime map matches Proposition 2 before saving |
 | `run_all.py` | Everything, in order, stopping at the first failure |
 | `download.py` | RCAEval acquisition, resumable |
 | `download_rca100.py` | RCA100 acquisition, lean by default |
@@ -825,5 +827,6 @@ its own authors.
 | | Why |
 |---|---|
 | `data/` | ~1 GB. Reproducible via `download.py` and `download_rca100.py`, both resumable |
-| `figures/` | Generated. `python figures.py` recreates all four |
+| `figures/` | Generated, analysis only. Holds what the manuscript has no room for; `python figures.py` recreates it |
+| `paper/figures/` | Generated. The figures the manuscript actually includes — `fig_mechanism.py` and `figures.py` write here |
 | `paper/` | Unsubmitted manuscript. On a public remote it can count as prior publication at some venues. Held in a separate private repository |
