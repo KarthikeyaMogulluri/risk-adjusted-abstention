@@ -1,19 +1,28 @@
 """
-The four figures. Vector PDF, sized for a two-column IEEE page.
+The measured figures. Vector PDF, sized for a two-column IEEE page.
 
 The figure set was re-planned after RQ1 was refuted. The originally planned
 figure 1 -- "the joint distribution straddling the sign-flip boundary" -- has
-no subject, because nothing straddles it. These four show what was actually
+no subject, because nothing straddles it. These show what was actually
 measured:
 
   fig1  the premise fails: threshold dispersion collapses on both datasets
   fig2  where the answer comes from: non-overlapping win windows   <- the claim
-  fig3  risk-coverage stratified by stake decile
   fig4  assist is dominated: the three-action space collapses to two
+
+  fig3  risk-coverage stratified by stake quartile -- REPO ONLY. Cut from the
+        manuscript when it was trimmed to eight pages: it makes the same point
+        as fig1(b) from another angle, and was the most redundant float. The
+        analysis still runs and still writes, to the repo-root figures/.
+
+SIZING RULE. Everything the paper includes at \\columnwidth is authored at
+3.45 in, the IEEE column width. Authoring at page width and letting LaTeX
+scale to a column halves every font with it -- 8 pt labels land at 4 pt, which
+is how a careful plot ends up looking machine-generated. Author at final size.
 
 GREYSCALE RULE: every series is distinguished by marker and linestyle as well
 as colour, and no statement in a caption depends on colour. Printed in mono,
-all four still read.
+all of them still read.
 
     python figures.py
 """
@@ -35,14 +44,14 @@ from rebalance import calibrate
 import rcaeval_loader
 import rca100_loader
 
-# Repo-root figures/. The manuscript is not published with this code, so
-# figures are regenerated rather than shipped.
-OUT = pathlib.Path(__file__).resolve().parent.parent / "figures"
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+OUT = ROOT / "paper" / "figures"        # figures the manuscript includes
+OUT_EXTRA = ROOT / "figures"            # analysis the manuscript has no room for
 P = CostParams()
 SP = StakeParams()
 
 plt.rcParams.update({
-    "font.size": 8, "axes.labelsize": 8, "axes.titlesize": 8.5,
+    "font.size": 8, "axes.labelsize": 8, "axes.titlesize": 8,
     "xtick.labelsize": 7, "ytick.labelsize": 7, "legend.fontsize": 7,
     "figure.dpi": 150, "savefig.bbox": "tight", "savefig.pad_inches": 0.02,
     "axes.spines.top": False, "axes.spines.right": False,
@@ -55,7 +64,8 @@ STYLE = {
     "RCAEval RE1": dict(color="#1a1a1a", marker="o", ls="-", ms=3.4),
     "RCA100":      dict(color="#b2560d", marker="s", ls="--", ms=3.2),
 }
-COL_WIDTH, PAGE_WIDTH = 3.4, 7.0
+COL_WIDTH, PAGE_WIDTH = 3.45, 7.16
+INK, FLIP, MUTE = "#1a1a1a", "#b2560d", "#555555"
 
 
 def load():
@@ -77,34 +87,58 @@ def compose(df, le, ls, boost=1.0):
 
 # --------------------------------------------------------------------------
 def fig1(data):
-    """The premise fails: threshold dispersion collapses under balance."""
-    fig, axes = plt.subplots(1, 2, figsize=(PAGE_WIDTH, 2.25))
+    """The premise fails: threshold dispersion collapses under balance.
+
+    Panels are stacked, not side by side, because at column width two panels
+    leave each one 1.7 in -- too narrow for a labelled histogram.
+    """
+    fig, axes = plt.subplots(2, 1, figsize=(COL_WIDTH, 2.58))
+    fig.subplots_adjust(hspace=0.72)
 
     ax = axes[0]
     for name, (df, le, ls) in data.items():
         rho, _, _ = compose(df, le, ls)
         ax.hist(np.log10(rho), bins=28, histtype="step", density=True,
                 color=STYLE[name]["color"], ls=STYLE[name]["ls"],
-                lw=1.3, label=name)
-    ax.set_xlabel(r"$\log_{10}$ stake $\rho$  (USD/s)")
-    ax.set_ylabel("density")
-    ax.set_title("(a) stake, balanced composition", loc="left")
-    ax.legend(frameon=False, loc="upper right")
+                lw=1.2, label=name)
+    ax.set_xlabel(r"$\log_{10}$ stake $\rho$  (USD/s)", labelpad=1.5)
+    ax.set_ylabel("density", labelpad=2)
+    ax.set_title("(a) stake, balanced composition", loc="left", pad=3)
+    ax.legend(frameon=False, loc="upper right", handlelength=1.6)
 
     ax = axes[1]
+    hi = 0.0
     for name, (df, le, ls) in data.items():
         rho, D, _ = compose(df, le, ls)
         ta = tau_act(rho, D, P)
+        hi = max(hi, float(np.max(ta)))
+        iqr = float(np.subtract(*np.percentile(ta, [75, 25])))
         ax.hist(ta, bins=28, histtype="step", density=True,
-                color=STYLE[name]["color"], ls=STYLE[name]["ls"], lw=1.3,
-                label=f"{name}  IQR={np.subtract(*np.percentile(ta,[75,25])):.3f}")
-    ax.axvline(0.845, color="#555", lw=0.9, ls=":")
-    ax.text(0.845, ax.get_ylim()[1] * 0.92, "  tuned constant",
-            fontsize=6.5, color="#555", va="top")
-    ax.set_xlabel(r"derived threshold $\tau^{\mathrm{act}}$")
+                color=STYLE[name]["color"], ls=STYLE[name]["ls"], lw=1.2,
+                label=f"{name}   IQR = {iqr:.3f}")
+
+    const = 0.845
+    ax.axvline(const, color=MUTE, lw=0.9, ls=":")
+    top = ax.get_ylim()[1]
+    ax.text(const + 0.02, top * 0.97, "tuned constant", fontsize=6.4,
+            color=MUTE, va="top", ha="left", rotation=90)
+
+    # the empty space between the two IS the finding, so measure it rather
+    # than leaving three quarters of the axis looking like dead margin
+    y = top * 0.42
+    ax.annotate("", xy=(const, y), xytext=(hi, y),
+                arrowprops=dict(arrowstyle="<|-|>", color=FLIP, lw=0.9,
+                                mutation_scale=7))
+    ax.text((hi + const) / 2, y + top * 0.06,
+            f"gap {const - hi:.2f}", fontsize=6.6, color=FLIP,
+            ha="center", va="bottom")
+
+    ax.set_xlabel(r"derived threshold $\tau^{\mathrm{act}}$", labelpad=1.5)
+    ax.set_ylabel("density", labelpad=2)
     ax.set_xlim(0, 1)
-    ax.set_title("(b) threshold dispersion", loc="left")
-    ax.legend(frameon=False, loc="upper center")
+    ax.set_title("(b) threshold dispersion", loc="left", pad=3)
+    ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.46, 1.02),
+              handlelength=1.6)
 
     fig.savefig(OUT / "fig1_premise.pdf")
     plt.close(fig)
@@ -115,7 +149,7 @@ def fig1(data):
 def fig2(data):
     """THE figure: the win windows do not coincide."""
     boosts = np.array([1, 3, 10, 30, 100, 300, 1000, 3000, 10000], dtype=float)
-    fig, ax = plt.subplots(figsize=(COL_WIDTH + 0.5, 2.5))
+    fig, ax = plt.subplots(figsize=(COL_WIDTH, 2.18))
 
     curves = {}
     for name, (df, le, ls) in data.items():
@@ -129,28 +163,49 @@ def fig2(data):
                       / r["fixed_hindsight"] * 100)
         curves[name] = np.array(ds)
 
-    # shade each dataset's win region
+    # shade each dataset's win region, and SAY which band is whose -- an
+    # unexplained shaded region is a reader asking the caption a question
+    spans = {}
     for name, hatch in zip(curves, ("////", "\\\\\\\\")):
         d = curves[name]
         win = d < 0
+        lo = hi = None
         for i in range(len(boosts) - 1):
             if win[i] and win[i + 1]:
                 ax.axvspan(boosts[i], boosts[i + 1], alpha=0.10, lw=0,
                            hatch=hatch, facecolor=STYLE[name]["color"],
-                           edgecolor=STYLE[name]["color"])
+                           edgecolor=STYLE[name]["color"], zorder=0)
+                lo = boosts[i] if lo is None else lo
+                hi = boosts[i + 1]
+        if lo is not None:
+            spans[name] = (lo, hi)
 
     for name, d in curves.items():
-        ax.plot(boosts, d, label=name, **STYLE[name])
+        ax.plot(boosts, d, label=name, zorder=3, **STYLE[name])
 
-    ax.axhline(0, color="#333", lw=1.0)
+    ax.axhline(0, color="#333", lw=1.0, zorder=2)
     ax.set_xscale("log")
-    ax.set_xlabel(r"error-budget dominance  ($\lambda_{\mathrm{slo}} b$ / $\rho^{\mathrm{infra}}$)")
-    ax.set_ylabel("regret vs tuned constant (%)")
-    ax.text(0.98, 0.06, "derived wins", transform=ax.transAxes, fontsize=6.5,
+    ax.set_xlabel(r"error-budget dominance  "
+                  r"($\lambda_{\mathrm{slo}} b$ / $\rho^{\mathrm{infra}}$)",
+                  labelpad=1.5)
+    ax.set_ylabel("regret vs tuned constant (%)", labelpad=2)
+    ax.text(0.985, 0.05, "derived wins", transform=ax.transAxes, fontsize=6.5,
             color="#333", ha="right")
-    ax.text(0.98, 0.94, "derived loses", transform=ax.transAxes, fontsize=6.5,
+    ax.text(0.985, 0.95, "derived loses", transform=ax.transAxes, fontsize=6.5,
             color="#333", ha="right", va="top")
-    ax.legend(frameon=False, loc="lower left", bbox_to_anchor=(0.0, 0.10))
+
+    # reserve a clear strip below the data, then name each band inside it --
+    # otherwise the label lands on whichever curve dips into that band
+    lo_y, hi_y = ax.get_ylim()
+    ax.set_ylim(lo_y - 0.30 * (hi_y - lo_y), hi_y)
+    for name, (lo, hi) in spans.items():
+        ax.text(np.sqrt(lo * hi), lo_y - 0.27 * (hi_y - lo_y),
+                f"{name}\nwins here", fontsize=6.0, ha="center", va="bottom",
+                color=STYLE[name]["color"], linespacing=0.95)
+
+    # bottom-left: the only corner neither curve nor band label reaches
+    ax.legend(frameon=False, loc="lower left", handlelength=2.0,
+              bbox_to_anchor=(0.0, 0.0), borderaxespad=0.3)
     fig.savefig(OUT / "fig2_windows.pdf")
     plt.close(fig)
     print("  fig2_windows.pdf")
@@ -159,7 +214,8 @@ def fig2(data):
 
 # --------------------------------------------------------------------------
 def fig3(data):
-    """Risk-coverage, stratified by stake decile."""
+    """Risk-coverage, stratified by stake quartile.  REPO ONLY -- see module
+    docstring. Writes to the repo-root figures/, not into the paper."""
     fig, axes = plt.subplots(1, 2, figsize=(PAGE_WIDTH, 2.35), sharey=True)
 
     for ax, (name, (df, le, ls)) in zip(axes, data.items()):
@@ -191,55 +247,76 @@ def fig3(data):
         ax.set_title(name, loc="left")
     axes[0].set_ylabel("cost-weighted regret")
     axes[0].legend(frameon=False, loc="upper left", ncol=1)
-    fig.savefig(OUT / "fig3_risk_coverage.pdf")
+    OUT_EXTRA.mkdir(parents=True, exist_ok=True)
+    fig.savefig(OUT_EXTRA / "fig3_risk_coverage.pdf")
     plt.close(fig)
-    print("  fig3_risk_coverage.pdf")
+    print("  fig3_risk_coverage.pdf  (repo only, not in the paper)")
 
 
 # --------------------------------------------------------------------------
 def fig4(data):
     """Assist is a dominated action throughout the measured regime.
 
-    Replaces the originally planned before/after bar chart, which mixed units
-    on one axis (so the 17x change in tau IQR rendered as nothing) and
-    duplicated the table in Section 6.1. This finding had no figure and
-    contradicts a stated contribution, so it earns the slot.
-    """
-    fig, axes = plt.subplots(1, 2, figsize=(PAGE_WIDTH * 0.82, 2.5),
-                             sharex=True, sharey=True)
+    One panel, both corpora. Two panels wasted half the slot showing the same
+    thing twice, and each was 70% empty: every point sits in a narrow band far
+    from the diagonal, so the full unit square was mostly margin. Zoomed to the
+    region the data occupies, with the diagonal still in frame -- which is the
+    whole claim.
 
-    for ax, (name, (df, le, ls)) in zip(axes, data.items()):
+    The plot is square (equal aspect, as any y-vs-x-with-a-diagonal must be),
+    so the key sits beside it rather than inside. That fills the column width
+    at scale 1.0; a bare square crops to 2.2 in and LaTeX would then upscale it
+    by 1.56x, printing this figure's labels half again as large as every other
+    figure's.
+    """
+    fig, ax = plt.subplots(figsize=(COL_WIDTH, 1.86))
+    fig.subplots_adjust(left=0.13, right=0.57, bottom=0.17, top=0.97)
+
+    counts = {}
+    for name, (df, le, ls) in data.items():
         rho, D, _ = compose(df, le, ls)
         ta = tau_act(rho, D, P)
         ts = tau_assist(rho, P)
         dominated = ts > ta
-        ax.scatter(ta[~dominated], ts[~dominated], s=9, facecolors="none",
-                   edgecolors="#1a1a1a", linewidths=0.7,
-                   label=f"assist usable ({(~dominated).sum()})")
-        ax.scatter(ta[dominated], ts[dominated], s=9, marker="x",
-                   color="#b2560d", linewidths=0.7,
-                   label=f"assist dominated ({dominated.sum()})")
-        lim = [0, 1]
-        ax.plot(lim, lim, color="#555", lw=0.9, ls="--")
-        ax.text(0.52, 0.44, r"$\tau^{\mathrm{assist}}=\tau^{\mathrm{act}}$",
-                fontsize=6.2, color="#555", rotation=38,
-                transform=ax.transAxes)
-        ax.set_xlim(0, 1); ax.set_ylim(0, 1)
-        ax.set_aspect("equal", adjustable="box")
-        ax.set_xlabel(r"$\tau^{\mathrm{act}}$")
-        ax.set_title(f"{name}  ({dominated.mean():.0%} dominated)", loc="left")
-        ax.legend(frameon=False, loc="lower right", fontsize=6.2)
-    axes[0].set_ylabel(r"$\tau^{\mathrm{assist}}$")
+        counts[name] = (int(dominated.sum()), len(ta), float(dominated.mean()))
+        ax.scatter(ta, ts, s=11, marker=STYLE[name]["marker"],
+                   facecolors="none", edgecolors=STYLE[name]["color"],
+                   linewidths=0.7, zorder=3,
+                   label=f"{name}  ({counts[name][0]}/{counts[name][1]})")
+
+    lim = 0.52
+    ax.plot([0, lim], [0, lim], color=MUTE, lw=0.9, ls="--", zorder=2)
+    ax.fill_between([0, lim], [0, lim], lim, color="#f0f0f0", lw=0, zorder=0)
+    ax.text(0.30, 0.345, r"$\tau^{\mathrm{assist}}=\tau^{\mathrm{act}}$",
+            fontsize=6.4, color=MUTE, rotation=45, rotation_mode="anchor")
+
+    ax.set_xlim(0, lim)
+    ax.set_ylim(0, lim)
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_xticks([0, 0.1, 0.2, 0.3, 0.4, 0.5])
+    ax.set_xlabel(r"$\tau^{\mathrm{act}}$", labelpad=1.5)
+    ax.set_ylabel(r"$\tau^{\mathrm{assist}}$", labelpad=2)
+
+    leg = ax.legend(frameon=False, fontsize=6.6, handletextpad=0.3,
+                    loc="upper left", bbox_to_anchor=(1.06, 1.0),
+                    title="cases dominated", alignment="left")
+    leg.get_title().set_fontsize(6.8)
+    ax.text(1.06, 0.50, "Every incident in both\ncorpora lies above the\n"
+                        "diagonal, so assist is\nnever the cheapest\naction.",
+            transform=ax.transAxes, fontsize=6.6, color=INK,
+            va="top", ha="left", linespacing=1.3)
     fig.savefig(OUT / "fig4_dominated_assist.pdf")
     plt.close(fig)
     print("  fig4_dominated_assist.pdf")
+    for n, (d, tot, frac) in counts.items():
+        print(f"      {n:<14} {d}/{tot} dominated ({frac:.1%})")
 
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     print("loading both datasets ...")
     data = load()
-    print("writing figures to paper/figures/")
+    print(f"writing paper figures to {OUT}")
     fig1(data)
     curves = fig2(data)
     fig3(data)
