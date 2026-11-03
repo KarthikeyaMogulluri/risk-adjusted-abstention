@@ -331,7 +331,7 @@ exists.
 | `python compare.py` | Cross-corpus comparison, all sweeps |
 | `python rebalance.py` | λ calibration + simplex sweep |
 | `python verify_paper.py` | Recompute all 43 claimed numbers |
-| `python figures.py` | Measured figures: three vector PDFs → `paper/figures/`, one → `figures/` |
+| `python figures.py` | The three measured figures → `paper/figures/` |
 | `python fig_mechanism.py` | Figure 1 → `paper/figures/` |
 | `python cloudops_probe.py --sample 48` | Cloud-OpsBench field verification |
 
@@ -761,7 +761,7 @@ Every file in the repository, 44 in total. Nothing here is undocumented.
 | `LICENSE` | MIT. The datasets carry their own licences |
 | `requirements.txt` | Six core packages; `anthropic` optional, agent study only |
 | `CITATION.cff` | Machine-readable citation metadata. Drives GitHub's "Cite this repository" button |
-| `.gitignore` | Excludes `data/` (~1 GB, downloadable), `figures/` (generated), `paper/` (unsubmitted manuscript), credentials, and the Obsidian working copies of the journal |
+| `.gitignore` | Excludes `data/` (~1 GB, downloadable), generated figures, `paper/` (unsubmitted manuscript), credentials, and the Obsidian working copies of the journal |
 | `.gitattributes` | `* text=auto eol=lf` so the repo is byte-identical across Windows, macOS and Linux; PDFs and parquet marked binary |
 
 ### `.github/`
@@ -785,7 +785,7 @@ Every file in the repository, 44 in total. Nothing here is undocumented.
 | `run_rq1.py` | The pre-registered gate |
 | `compare.py` | Cross-corpus comparison and the burn-dominance sweep |
 | `verify_paper.py` | Recomputes all 43 claimed numbers and fails loudly on divergence |
-| `figures.py` | The measured figures. Three go to `paper/figures/`; `fig3_risk_coverage` goes to `figures/`, since the eight-page manuscript has no room for it |
+| `figures.py` | The three measured figures — the premise, the win windows, risk-coverage by stake quartile — all to `paper/figures/` |
 | `fig_mechanism.py` | Figure 1, the mechanism. Drawn at the column width it prints at, and asserts its regime map matches Proposition 2 before saving |
 | `run_all.py` | Everything, in order, stopping at the first failure |
 | `download.py` | RCAEval acquisition, resumable |
@@ -827,6 +827,5 @@ its own authors.
 | | Why |
 |---|---|
 | `data/` | ~1 GB. Reproducible via `download.py` and `download_rca100.py`, both resumable |
-| `figures/` | Generated, analysis only. Holds what the manuscript has no room for; `python figures.py` recreates it |
-| `paper/figures/` | Generated. The figures the manuscript actually includes — `fig_mechanism.py` and `figures.py` write here |
+| `paper/figures/` | Generated. Every figure the manuscript includes; `fig_mechanism.py` and `figures.py` both write here |
 | `paper/` | Unsubmitted manuscript. On a public remote it can count as prior publication at some venues. Held in a separate private repository |

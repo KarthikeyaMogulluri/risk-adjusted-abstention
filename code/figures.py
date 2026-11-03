@@ -10,10 +10,9 @@ measured:
   fig2  where the answer comes from: non-overlapping win windows   <- the claim
   fig4  assist is dominated: the three-action space collapses to two
 
-  fig3  risk-coverage stratified by stake quartile -- REPO ONLY. Cut from the
-        manuscript when it was trimmed to eight pages: it makes the same point
-        as fig1(b) from another angle, and was the most redundant float. The
-        analysis still runs and still writes, to the repo-root figures/.
+  fig3  risk-coverage stratified by stake quartile -- the refutation seen
+        from a third angle: if stake governed the operating point the
+        quartiles would separate, and they do not.
 
 SIZING RULE. Everything the paper includes at \\columnwidth is authored at
 3.45 in, the IEEE column width. Authoring at page width and letting LaTeX
@@ -45,8 +44,7 @@ import rcaeval_loader
 import rca100_loader
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-OUT = ROOT / "paper" / "figures"        # figures the manuscript includes
-OUT_EXTRA = ROOT / "figures"            # analysis the manuscript has no room for
+OUT = ROOT / "paper" / "figures"        # every figure the manuscript includes
 P = CostParams()
 SP = StakeParams()
 
@@ -214,9 +212,8 @@ def fig2(data):
 
 # --------------------------------------------------------------------------
 def fig3(data):
-    """Risk-coverage, stratified by stake quartile.  REPO ONLY -- see module
-    docstring. Writes to the repo-root figures/, not into the paper."""
-    fig, axes = plt.subplots(1, 2, figsize=(PAGE_WIDTH, 2.35), sharey=True)
+    """Risk-coverage, stratified by stake quartile."""
+    fig, axes = plt.subplots(1, 2, figsize=(COL_WIDTH, 2.10), sharey=True)
 
     for ax, (name, (df, le, ls)) in zip(axes, data.items()):
         rho, D, T_e = compose(df, le, ls)
@@ -247,10 +244,9 @@ def fig3(data):
         ax.set_title(name, loc="left")
     axes[0].set_ylabel("cost-weighted regret")
     axes[0].legend(frameon=False, loc="upper left", ncol=1)
-    OUT_EXTRA.mkdir(parents=True, exist_ok=True)
-    fig.savefig(OUT_EXTRA / "fig3_risk_coverage.pdf")
+    fig.savefig(OUT / "fig3_risk_coverage.pdf")
     plt.close(fig)
-    print("  fig3_risk_coverage.pdf  (repo only, not in the paper)")
+    print("  fig3_risk_coverage.pdf")
 
 
 # --------------------------------------------------------------------------
