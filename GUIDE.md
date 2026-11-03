@@ -21,7 +21,7 @@ this is the reference. Nothing here assumes you have read the paper.
 12. [Glossary](#12-glossary)
 13. [FAQ](#13-faq)
 14. [Complete file manifest](#14-complete-file-manifest)
-14. [Complete file manifest](#14-complete-file-manifest)
+15. [The manuscript, end to end](#15-the-manuscript-end-to-end)
 
 ---
 
@@ -334,6 +334,9 @@ exists.
 | `python figures.py` | The three measured figures → `paper/figures/` |
 | `python fig_mechanism.py` | Figure 1 → `paper/figures/` |
 | `python cloudops_probe.py --sample 48` | Cloud-OpsBench field verification |
+| `python audit_paper.py` | Every check on the manuscript LaTeX will not do for you (§15.3) |
+| `python audit_paper.py --group voice` | One group: `hygiene`, `ieee`, `refs`, `figures`, `voice` |
+| `python audit_paper.py --quiet` | Exit code only, for CI |
 
 `run_rq1.py` takes `--dataset {rcaeval,rca100}` and `--root`.
 `cloudops_probe.py` takes `--sample` and `--workers`.
@@ -680,6 +683,11 @@ exactly this reason.
 | Figures look wrong after edits | `python figures.py` and `python fig_mechanism.py` regenerate every figure |
 | Proposition 2 fails after parameter change | Your parameters are outside the model's valid range |
 | Unicode errors on Windows | `PYTHONIOENCODING=utf-8` before the command |
+| PDF prints `ootnotesize`, `efsec:results`, `abcolsep` or similar | A command lost its backslash to escape conversion. **LaTeX reports no error.** See §15.5 |
+| A figure's text prints much larger or smaller than the body | Authored at the wrong width, so LaTeX rescaled it. `python audit_paper.py --group figures` |
+| `\ref` prints as `??` | Run `pdflatex` again after `bibtex`; labels need two passes |
+| References print as `[?]` | `bibtex` was not run, or ran before the first `pdflatex` |
+| Page count changed unexpectedly after an edit | Floats repack. Measure with `pdfinfo`, not a `/Count` regex — see §15.4 |
 
 ---
 
@@ -770,7 +778,7 @@ Every file in the repository, 44 in total. Nothing here is undocumented.
 |---|---|
 | `workflows/ci.yml` | Runs Propositions 1 and 2 against a finite difference, checks topology integrity, and imports all modules, on Python 3.11 and 3.12. Deliberately does **not** run `verify_paper.py`, which needs the corpora |
 
-### `code/` — 20 files
+### `code/` — 21 files
 
 | File | Purpose |
 |---|---|
@@ -785,6 +793,7 @@ Every file in the repository, 44 in total. Nothing here is undocumented.
 | `run_rq1.py` | The pre-registered gate |
 | `compare.py` | Cross-corpus comparison and the burn-dominance sweep |
 | `verify_paper.py` | Recomputes all 43 claimed numbers and fails loudly on divergence |
+| `audit_paper.py` | Checks the manuscript against the build: control characters, leaked label keys, IEEE house style, citations both ways, figure scale on the page, prose punctuation density |
 | `figures.py` | The three measured figures — the premise, the win windows, risk-coverage by stake quartile — all to `paper/figures/` |
 | `fig_mechanism.py` | Figure 1, the mechanism. Drawn at the column width it prints at, and asserts its regime map matches Proposition 2 before saving |
 | `run_all.py` | Everything, in order, stopping at the first failure |
@@ -829,3 +838,235 @@ its own authors.
 | `data/` | ~1 GB. Reproducible via `download.py` and `download_rca100.py`, both resumable |
 | `paper/figures/` | Generated. Every figure the manuscript includes; `fig_mechanism.py` and `figures.py` both write here |
 | `paper/` | Unsubmitted manuscript. On a public remote it can count as prior publication at some venues. Held in a separate private repository |
+
+---
+
+## 15. The manuscript, end to end
+
+The rest of this guide covers the code. This section covers the paper: how to
+build it, what guards it, what a page costs, and the two defect classes that
+each cost a day to find. If you only read one subsection, read §15.5.
+
+### 15.1 Where it lives, and why separately
+
+The manuscript is a **separate private repository**, cloned into `paper/` and
+excluded from this one by `.gitignore`.
+
+That is deliberate. Posting a manuscript to a public remote before submission
+counts as prior publication at some venues, and the question is decided by the
+venue, not by you. Keeping the paper in its own private repository means the
+code can be public immediately — which is what reproducibility needs — without
+risking the submission.
+
+```
+k8s-aiops-research/          this repository, public
+├── code/                    21 modules
+├── README.md, GUIDE.md
+└── paper/                   separate private repo, gitignored here
+    ├── main.tex             the manuscript
+    ├── refs.bib             32 entries
+    ├── figures/             4 PDFs, written by code/
+    └── build/               pdflatex working directory
+```
+
+### 15.2 Building it
+
+LaTeX needs four passes, and the order matters:
+
+```bash
+cd paper
+BIN=/c/Users/HP/AppData/Local/Programs/MiKTeX/miktex/bin/x64
+"$BIN/pdflatex.exe" -interaction=nonstopmode -output-directory=build main.tex
+(cd build && "$BIN/bibtex.exe" main)
+"$BIN/pdflatex.exe" -interaction=nonstopmode -output-directory=build main.tex
+"$BIN/pdflatex.exe" -interaction=nonstopmode -output-directory=build main.tex
+```
+
+Why four:
+
+| Pass | What it does |
+|---|---|
+| 1 | Writes every `\label`'s number and every `\cite` key into `main.aux` |
+| bibtex | Reads those keys, matches them against `refs.bib`, writes `main.bbl` |
+| 2 | Pulls `main.bbl` in; numbers the references; cross-references still settling |
+| 3 | Everything resolved and stable |
+
+Run `pdflatex` once after `bibtex` and the references print as `[?]`. Skip
+`bibtex` entirely and there are no references at all. Run only two passes and
+some `\ref` print as `??`.
+
+**The figures must exist first.** `main.tex` reads `paper/figures/`, written
+by `code/figures.py` and `code/fig_mechanism.py`. `run_all.py` runs both.
+
+### 15.3 What guards it
+
+Three independent gates, each catching something the others cannot.
+
+| Gate | Command | Guarantees |
+|---|---|---|
+| **Numbers** | `python verify_paper.py` | Each of 43 numerical claims in the text is recomputed from the released code and matches. Fails loudly on divergence |
+| **Document** | `python audit_paper.py` | 25 checks across five groups (below), exit code 0 when all pass |
+| **Compiler** | the build log | 0 errors, 0 overfull hboxes, 0 undefined references |
+
+`audit_paper.py`'s five groups:
+
+| Group | Checks |
+|---|---|
+| `hygiene` | No control character anywhere in the source. No label key (`sec:`, `fig:`, `tab:`…) in the rendered text. No decapitated command (`ootnotesize`, `efsec`…) in the rendered text. **This is the group that catches §15.5** |
+| `ieee` | Document class, bibliography style, keywords block. Abstract within 150–250 words. `Fig.~` not `Figure~`; `\eqref` not `Eq.~\ref`. Every float captioned, captions on the correct side, every float cited, no dangling `\ref`. No `\noindent` after a float |
+| `refs` | Every `\cite` resolves in `refs.bib`, and every `refs.bib` entry is cited. Both directions |
+| `figures` | Each figure's width against the column it is placed in. Scale must land near 1.0 — see §15.6 |
+| `voice` | Punctuation density, sentence-length variance, repeated sentence openers, stock vocabulary. Ranges are what published prose occupies, not hard limits |
+
+The `voice` group deserves a word on what it is **not**. It is not an
+AI-detector, and no claim is made that passing it proves anything about
+authorship. It measures habits — em-dash density, colon density, sentences
+starting the same way — that make prose read as mechanical regardless of who
+or what wrote it. The paper discloses its use of generative AI in the Data
+Availability section, and that disclosure is required by arXiv and IEEE and
+should stay. Measuring prose quality and declaring provenance are separate
+things; do both.
+
+### 15.4 The page budget
+
+The paper is **9 pages**: 8 of body and floats, 1 of references. Before
+changing anything, know what the space is spent on.
+
+| Item | Cost |
+|---|---|
+| 32 references | ~1.0 page. No slack: the entries carry no URLs |
+| 4 figures | ~2.9 column-inches each with caption, ~0.6 page total |
+| 4 tables | ~1.3 column-inches each, ~0.3 page total |
+| Body prose | ~6,100 words, ~7.1 pages |
+| Title block + abstract | ~0.4 page of page 1, fixed |
+
+Two warnings learned the hard way.
+
+**Do not count pages with a regular expression.** `/Count` appears more than
+once inside a PDF, so taking the largest match over-reports. This went unnoticed
+for a long stretch and caused real over-cutting — content was removed to hit a
+target already met. Use `pdfinfo main.pdf` or `len(pypdf.PdfReader(...).pages)`.
+
+**Do not measure page fullness with `pdftotext -layout`.** That mode pads with
+spaces to preserve column positions, so a character count measures layout, not
+content, and moves erratically as floats repack. Drop `-layout`, or count words.
+
+A page is roughly 850 words of body text, but floats repack when anything
+changes, so the only reliable method is: edit, rebuild, measure.
+
+### 15.5 The defect class that compiles cleanly
+
+**Read this before generating any LaTeX from a script.**
+
+Three commands in this manuscript lost their leading backslash, and every
+build reported `0 errors`:
+
+| Written | Landed in the file as | Printed in the PDF |
+|---|---|---|
+| `\footnotesize` | formfeed + `ootnotesize` | "ootnotesize", as a row of a table |
+| `\setlength{\tabcolsep}` | `{` + tab + `abcolsep}` | "abcolsep 4pt" |
+| `\ref{sec:results}` | newline + `ef{sec:results}` | "Section efsec:results establishes" |
+
+`\f`, `\t` and `\r` are escape sequences for formfeed, tab and carriage
+return. When a tool converts them, the backslash is consumed and the command's
+first letter goes with it.
+
+**Why LaTeX says nothing.** It only errors on what it cannot parse.
+`ootnotesize` is not a broken command, it is seven ordinary letters, so they
+get typeset. Braces are grouping characters, so `{sec:results}` is absorbed
+silently and its contents printed. Nothing is ever malformed. It is all just
+wrong.
+
+Two checks catch it, and you need both:
+
+```python
+# source side: no control character that is not a line ending
+bad = [b for i, b in enumerate(raw)
+       if (b < 32 and b not in (10, 13)) or b == 127]
+
+# output side: \ref prints a number, so a label key can never appear
+leaked = re.findall(r'\b(?:sec|eq|fig|tab|prop|ass):[a-z]+', pdf_text)
+```
+
+The source-side check alone is not enough. A stray `\r` gets normalised into a
+proper line ending when the file is saved in text mode, so it stops looking
+like corruption and starts looking like formatting — which is exactly how the
+third one survived the first scan.
+
+**Writing LaTeX from Python: build the backslash, never type it.**
+
+```python
+B = chr(92)
+s = s.replace(B + 'setlength{' + B + 'tabcolsep}', ...)   # safe
+s = s.replace('\setlength{\tabcolsep}', ...)              # two control chars
+```
+
+The giveaway in a diff or a PDF is a command missing exactly its first letter:
+`ootnotesize`, `ewcommand`, `ef`, `abcolsep`, `extbf`, `rac`, `egin`, `oprule`.
+
+### 15.6 Figures: author at the size they print
+
+Every figure here is authored **3.45 inches wide**, the IEEE column width,
+because that is the width `main.tex` includes them at.
+
+This matters more than it sounds. The figures were originally drawn 7 inches
+wide for a two-column slot and then included at `\columnwidth`, so LaTeX
+scaled them to about half — **and scaling a figure scales the text inside it**.
+Labels set at 8 pt printed at 4 pt. The plots were correct, the data was
+correct, and they looked machine-generated, because nothing in a careful plot
+survives being halved.
+
+Check it arithmetically rather than by eye:
+
+```bash
+python audit_paper.py --group figures
+```
+
+It reads each figure's `/MediaBox`, divides the column width by the figure's
+width, and requires the result between 0.85 and 1.20.
+
+One trap: `savefig(..., bbox_inches="tight")` crops blank margins, so the
+saved file is **narrower than the `figsize` you asked for**. A square plot
+asking for 3.45 in can land at 2.21 in and then be upscaled 1.56×. The fix
+used for `fig4` was to put its key beside the plot rather than inside it, so
+the saved width fills the column honestly.
+
+Other rules the figures follow:
+
+- **Greyscale-safe.** Every series differs in marker and line style as well as
+  colour, and no caption depends on colour. Printed in mono they still read.
+- **Label once, unambiguously.** The three-action bands carry a key rather than
+  in-band labels, because a narrow band cannot hold a label and the narrow one
+  is a different band on each row.
+- **Nothing floats outside the axes.** An annotation hanging below the plot
+  reads as bolted on.
+
+### 15.7 What is left before submission
+
+Four `\TODO` placeholders print in red and must be gone:
+
+| Placeholder | Needs |
+|---|---|
+| author list | Who is on the paper, in order |
+| affiliation | Institution |
+| email | Corresponding author |
+| repository URL and archival DOI | Created at submission — Zenodo for the DOI |
+
+And three decisions no script can make:
+
+- **The venue.** This matters for the page count: 9 pages fits some IEEE
+  conferences and exceeds others. If your target caps at 8, the history holds
+  an 8-page version, and §15.4 says what a page costs.
+- **An arXiv endorser** for `cs.SE`, if you post a preprint. The policy changed
+  on 21 January 2026 and an institutional email alone no longer qualifies.
+- **Whether to make `paper/` public**, which should follow the venue's policy
+  on preprints, not convenience.
+
+### 15.8 One command before you submit
+
+```bash
+cd code && python verify_paper.py && python audit_paper.py
+```
+
+Expect `VERIFIED 43  MISMATCHED 0`, then `ALL CHECKS PASS` with one note for
+the TODO placeholders. The note is expected until §15.7 is done.

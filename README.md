@@ -348,6 +348,7 @@ python download_rca100.py                              # RCA100, ~62 MB
 python run_rq1.py --dataset rcaeval --root ../data     # the gate
 python compare.py                                      # both corpora
 python verify_paper.py                                 # all 43 claimed numbers
+python audit_paper.py                                  # the manuscript, 25 checks
 python figures.py                                      # 3 measured figures -> paper/figures/
 python fig_mechanism.py                                # Figure 1 -> paper/figures/
 ```
@@ -486,6 +487,7 @@ download_rca100.py          rca100_loader.py ──┤   (separate loaders,
 | `run_rq1.py` | The pre-registered gate |
 | `compare.py` | Cross-corpus comparison |
 | `verify_paper.py` | Recomputes all 43 claimed numbers |
+| `audit_paper.py` | 25 checks on the manuscript LaTeX will not do for you: control characters, leaked label keys, IEEE house style, citations both ways, figure scale, prose punctuation. See GUIDE §15.3 |
 | `figures.py` | The three measured figures -> `paper/figures/` |
 | `fig_mechanism.py` | Figure 1, the mechanism -> `paper/figures/`. Asserts the drawn regime boundary matches Proposition 2 |
 | `probe_rca100.py` | RCA100 schema probe, run before the loader was written |
