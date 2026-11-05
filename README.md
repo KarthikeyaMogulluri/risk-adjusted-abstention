@@ -487,7 +487,8 @@ download_rca100.py          rca100_loader.py ──┤   (separate loaders,
 | `run_rq1.py` | The pre-registered gate |
 | `compare.py` | Cross-corpus comparison |
 | `verify_paper.py` | Recomputes all 43 claimed numbers |
-| `audit_paper.py` | 25 checks on the manuscript LaTeX will not do for you: control characters, leaked label keys, IEEE house style, citations both ways, figure scale, prose punctuation. See GUIDE §15.3 |
+| `audit_paper.py` | 28 checks on the manuscript LaTeX will not do for you: control characters, leaked label keys, IEEE house style, equation numbers, citations both ways, figure scale, prose punctuation. See GUIDE §15.3 |
+| `make_docx.py` | `paper/main.docx` from the LaTeX source, for a venue that wants Word. See GUIDE §15.8 |
 | `figures.py` | The three measured figures -> `paper/figures/` |
 | `fig_mechanism.py` | Figure 1, the mechanism -> `paper/figures/`. Asserts the drawn regime boundary matches Proposition 2 |
 | `probe_rca100.py` | RCA100 schema probe, run before the loader was written |

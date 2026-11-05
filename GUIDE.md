@@ -337,6 +337,7 @@ exists.
 | `python audit_paper.py` | Every check on the manuscript LaTeX will not do for you (§15.3) |
 | `python audit_paper.py --group voice` | One group: `hygiene`, `ieee`, `refs`, `figures`, `voice` |
 | `python audit_paper.py --quiet` | Exit code only, for CI |
+| `python make_docx.py` | Convert the manuscript to `paper/main.docx` for a venue that wants Word (§15.8) |
 
 `run_rq1.py` takes `--dataset {rcaeval,rca100}` and `--root`.
 `cloudops_probe.py` takes `--sample` and `--workers`.
@@ -778,7 +779,7 @@ Every file in the repository, 44 in total. Nothing here is undocumented.
 |---|---|
 | `workflows/ci.yml` | Runs Propositions 1 and 2 against a finite difference, checks topology integrity, and imports all modules, on Python 3.11 and 3.12. Deliberately does **not** run `verify_paper.py`, which needs the corpora |
 
-### `code/` — 21 files
+### `code/` — 22 files
 
 | File | Purpose |
 |---|---|
@@ -794,6 +795,7 @@ Every file in the repository, 44 in total. Nothing here is undocumented.
 | `compare.py` | Cross-corpus comparison and the burn-dominance sweep |
 | `verify_paper.py` | Recomputes all 43 claimed numbers and fails loudly on divergence |
 | `audit_paper.py` | Checks the manuscript against the build: control characters, leaked label keys, IEEE house style, citations both ways, figure scale on the page, prose punctuation density |
+| `make_docx.py` | Builds `paper/main.docx` from the LaTeX source, not the PDF: real headings, editable equations, IEEE-numbered citations |
 | `figures.py` | The three measured figures — the premise, the win windows, risk-coverage by stake quartile — all to `paper/figures/` |
 | `fig_mechanism.py` | Figure 1, the mechanism. Drawn at the column width it prints at, and asserts its regime map matches Proposition 2 before saving |
 | `run_all.py` | Everything, in order, stopping at the first failure |
@@ -1062,7 +1064,35 @@ And three decisions no script can make:
 - **Whether to make `paper/` public**, which should follow the venue's policy
   on preprints, not convenience.
 
-### 15.8 One command before you submit
+### 15.8 A Word version, if the venue wants one
+
+```bash
+cd code && python make_docx.py      # -> paper/main.docx
+```
+
+It converts from `main.tex`, **not** from the PDF. Going via the PDF
+(`pdf2docx`) keeps the two-column layout as a raft of floating text boxes and
+turns every equation into a picture, which is the opposite of what a .docx is
+for. From the source you get real headings, real paragraphs, and equations as
+OMML that Word can edit.
+
+Four things have to be prepared, and the script does them:
+
+| Problem | What it does |
+|---|---|
+| Word will not embed a PDF image | Renders each figure to PNG at 300 dpi |
+| pandoc cannot parse `\label` inside a math environment | Replaces each with the number the built paper assigned, read from `main.aux`, so the .docx numbering matches the PDF |
+| pandoc drops `\cite` without citeproc, and citeproc formats author-date | Substitutes the literal `[n]` bibtex already chose, and inlines `main.bbl` as a numbered reference list |
+| IEEEtran is not LaTeX pandoc understands | Swaps in `article`, and converts the keywords block |
+
+Build the paper first: the script reads `build/main.aux` and `build/main.bbl`,
+so the numbering comes from a real build rather than being re-derived.
+
+What does not survive, and cannot: the two-column layout, IEEE's exact float
+placement, and the typeset look. A .docx is an editing and submission format,
+not a facsimile. The PDF remains the artefact of record.
+
+### 15.9 One command before you submit
 
 ```bash
 cd code && python verify_paper.py && python audit_paper.py
