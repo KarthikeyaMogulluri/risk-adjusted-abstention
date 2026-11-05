@@ -338,6 +338,7 @@ exists.
 | `python audit_paper.py --group voice` | One group: `hygiene`, `ieee`, `refs`, `figures`, `voice` |
 | `python audit_paper.py --quiet` | Exit code only, for CI |
 | `python make_docx.py` | Convert the manuscript to `paper/main.docx` for a venue that wants Word (§15.8) |
+| `python ieee_docx.py` | Put that .docx into IEEE two-column format. Run it after `make_docx.py` |
 
 `run_rq1.py` takes `--dataset {rcaeval,rca100}` and `--root`.
 `cloudops_probe.py` takes `--sample` and `--workers`.
@@ -779,7 +780,7 @@ Every file in the repository, 44 in total. Nothing here is undocumented.
 |---|---|
 | `workflows/ci.yml` | Runs Propositions 1 and 2 against a finite difference, checks topology integrity, and imports all modules, on Python 3.11 and 3.12. Deliberately does **not** run `verify_paper.py`, which needs the corpora |
 
-### `code/` — 22 files
+### `code/` — 23 files
 
 | File | Purpose |
 |---|---|
@@ -796,6 +797,7 @@ Every file in the repository, 44 in total. Nothing here is undocumented.
 | `verify_paper.py` | Recomputes all 43 claimed numbers and fails loudly on divergence |
 | `audit_paper.py` | Checks the manuscript against the build: control characters, leaked label keys, IEEE house style, citations both ways, figure scale on the page, prose punctuation density |
 | `make_docx.py` | Builds `paper/main.docx` from the LaTeX source, not the PDF: real headings, editable equations, IEEE-numbered citations |
+| `ieee_docx.py` | Rewrites that .docx into IEEE conference format: Letter, IEEE margins, two columns with a full-width title block, Times throughout, Roman-numeral headings |
 | `figures.py` | The three measured figures — the premise, the win windows, risk-coverage by stake quartile — all to `paper/figures/` |
 | `fig_mechanism.py` | Figure 1, the mechanism. Drawn at the column width it prints at, and asserts its regime map matches Proposition 2 before saving |
 | `run_all.py` | Everything, in order, stopping at the first failure |
@@ -972,6 +974,22 @@ build reported `0 errors`:
 `\f`, `\t` and `\r` are escape sequences for formfeed, tab and carriage
 return. When a tool converts them, the backslash is consumed and the command's
 first letter goes with it.
+
+**The same bug has a second vector: `re.sub`.** Its replacement argument is a
+*template*, not a literal, so a backslash in it is an escape there too. This
+appeared in `make_docx.py`, where
+
+```python
+re.sub(pattern, B + 'author{}', s)      # B = chr(92)
+```
+
+produced `\x07uthor{}` — a BELL character — and the stray word "uthor" was
+typeset into the Word output. A lambda replacement is never parsed, so it is
+the safe form:
+
+```python
+re.sub(pattern, lambda m: B + 'author{}', s)
+```
 
 **Why LaTeX says nothing.** It only errors on what it cannot parse.
 `ootnotesize` is not a broken command, it is seven ordinary letters, so they

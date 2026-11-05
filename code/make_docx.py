@@ -53,7 +53,10 @@ s = io.open(PAPER / 'main.tex', encoding='utf-8').read()
 s = s.replace(B + 'documentclass[conference]{IEEEtran}',
               B + 'documentclass[11pt]{article}')
 s = s.replace(B + 'IEEEoverridecommandlockouts', '')
-s = re.sub(re.escape(B) + r'author\{.*?\}\}\}', B + 'author{}', s, flags=re.S)
+# a backslash in a re.sub replacement is an escape: B + 'author{}'
+# becomes BELL + 'uthor{}'. A lambda replacement is never parsed.
+AUTHOR = B + 'author{' + B + 'textbf{TO DO: author list, affiliation, email}}'
+s = re.sub(re.escape(B) + r'author\{.*?\}\}\}', lambda m: AUTHOR, s, flags=re.S)
 s = re.sub(re.escape(B) + r'begin\{IEEEkeywords\}(.*?)' + re.escape(B)
            + r'end\{IEEEkeywords\}',
            lambda m: B + r'bigskip' + chr(10) + chr(10)
