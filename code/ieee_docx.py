@@ -126,6 +126,56 @@ def style_runs(p, size=None, bold=None, italic=None, caps=None) -> None:
             r.font.small_caps = caps
 
 
+def runin_abstract(doc) -> bool:
+    """Fold the "Abstract" heading into the abstract itself.
+
+    IEEE has no standalone Abstract heading. The abstract is one paragraph
+    opening with a bold-italic "Abstract" and an em dash, then the text in
+    bold: *Abstract*---Automated agents increasingly... pandoc emits the
+    word as its own paragraph, which is the single most visible way a
+    converted document announces it is not in the template.
+
+    Nothing is moved between paragraphs. An earlier version rebuilt the
+    paragraph by copying its runs across, which silently dropped the two
+    percentages from the abstract: OMML maths is an <m:oMath> element, not a
+    <w:r>, so paragraph.runs does not see it and it was left behind with the
+    discarded paragraph. Insert in place instead.
+    """
+    paras = doc.paragraphs
+    head = next((p for p in paras if p.style.name == "Abstract Title"), None)
+    body = next((p for p in paras if p.style.name == "Abstract"), None)
+    if head is None or body is None or not body.runs:
+        return False
+
+    from docx.text.run import Run
+    first = body.runs[0]._element
+    tag = copy.deepcopy(first)
+    first.addprevious(tag)
+    tag_run = Run(tag, body)
+    tag_run.text = "Abstract—"
+    tag_run.font.bold = True
+    tag_run.font.italic = True
+    tag_run.font.size = Pt(9)
+    tag_run.font.name = TIMES
+
+    head._p.getparent().remove(head._p)
+    return True
+
+
+def runin_index_terms(doc) -> bool:
+    """IEEE italicises only the words "Index Terms", not the list."""
+    for p in doc.paragraphs:
+        if p.text.strip().startswith("Index Terms") and p.runs:
+            for i, r in enumerate(p.runs):
+                r.font.bold = True
+                r.font.italic = (i == 0)
+                r.font.size = Pt(9)
+                r.font.name = TIMES
+            p.paragraph_format.first_line_indent = Inches(0)
+            return True
+    return False
+
+
 def renumber_headings(doc) -> tuple[int, int]:
     """pandoc numbers 1, 2.1, 2.2. IEEE numbers I, II and then A, B."""
     sec = 0
@@ -140,11 +190,11 @@ def renumber_headings(doc) -> tuple[int, int]:
             else:
                 sec += 1
                 sub = 0
-                new = "%s.  %s" % (ROMAN[sec] if sec < len(ROMAN) else sec, text)
+                new = "%s. %s" % (ROMAN[sec] if sec < len(ROMAN) else sec, text)
             n1 += 1
         elif p.style.name == "Heading 2":
             text = re.sub(r"^\s*\d+\.\d+\s*", "", p.text).strip()
-            new = "%s.  %s" % (chr(ord("A") + sub), text)
+            new = "%s. %s" % (chr(ord("A") + sub), text)
             sub += 1
             n2 += 1
         else:
@@ -221,12 +271,11 @@ def main() -> int:
                     counts["body"] += 1
             p.paragraph_format.space_after = Pt(0)
 
-    # the Index Terms line is bold italic in IEEE
-    for p in doc.paragraphs:
-        if p.text.strip().startswith("Index Terms"):
-            style_runs(p, size=9, bold=True, italic=True)
-            p.paragraph_format.first_line_indent = Inches(0)
-            break
+    print("  abstract        : %s"
+          % ("run-in, no standalone heading" if runin_abstract(doc)
+             else "left as-is (no Abstract style found)"))
+    print("  index terms     : %s"
+          % ("italic lead-in only" if runin_index_terms(doc) else "not found"))
 
     n1, n2 = renumber_headings(doc)
     print("  headings        : %d numbered I, II, ... and %d lettered A, B, ..."

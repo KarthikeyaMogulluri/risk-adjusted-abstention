@@ -909,10 +909,10 @@ Three independent gates, each catching something the others cannot.
 | Gate | Command | Guarantees |
 |---|---|---|
 | **Numbers** | `python verify_paper.py` | Each of 43 numerical claims in the text is recomputed from the released code and matches. Fails loudly on divergence |
-| **Document** | `python audit_paper.py` | 25 checks across five groups (below), exit code 0 when all pass |
+| **Document** | `python audit_paper.py` | 35 checks across seven groups (below), exit code 0 when all pass |
 | **Compiler** | the build log | 0 errors, 0 overfull hboxes, 0 undefined references |
 
-`audit_paper.py`'s five groups:
+`audit_paper.py`'s seven groups:
 
 | Group | Checks |
 |---|---|
@@ -920,6 +920,7 @@ Three independent gates, each catching something the others cannot.
 | `ieee` | Document class, bibliography style, keywords block. Abstract within 150–250 words. `Fig.~` not `Figure~`; `\eqref` not `Eq.~\ref`. Every float captioned, captions on the correct side, every float cited, no dangling `\ref`. No `\noindent` after a float |
 | `refs` | Every `\cite` resolves in `refs.bib`, and every `refs.bib` entry is cited. Both directions |
 | `figures` | Each figure's width against the column it is placed in. Scale must land near 1.0 — see §15.6 |
+| `docx` | The Word version against the PDF: IEEE two-column layout, Letter and IEEE margins, the abstract run-in, and that nothing was lost converting — same citation numbers, every figure embedded, and the abstract's inline maths still present |
 | `voice` | Punctuation density, sentence-length variance, repeated sentence openers, stock vocabulary. Ranges are what published prose occupies, not hard limits |
 
 The `voice` group deserves a word on what it is **not**. It is not an

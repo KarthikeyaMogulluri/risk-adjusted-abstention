@@ -23,6 +23,8 @@ GROUPS
               paper, which renumbers whenever it is restructured.
     refs      citations resolve both ways against refs.bib.
     figures   each figure's scale factor on the page.
+    docx      the Word version against the PDF: IEEE layout, and that nothing
+              was lost converting.
     voice     punctuation density and sentence shape, against ranges that
               published prose actually occupies.
 """
@@ -274,6 +276,87 @@ def g_figures(src: str) -> None:
               "%.2f in -> scale %.2fx" % (w, sc))
 
 
+def g_docx() -> None:
+    """The Word version against the PDF it was made from.
+
+    Converting loses things quietly. Rebuilding the abstract paragraph once
+    dropped both percentages out of it, because OMML maths is an <m:oMath>
+    element and not a <w:r>, so python-docx's paragraph.runs never saw them.
+    The document still looked right.
+    """
+    head("WORD VERSION -- against the PDF it was made from")
+    path = PAPER / "main.docx"
+    if not path.exists():
+        note("no main.docx", "run make_docx.py and ieee_docx.py to build it")
+        return
+    try:
+        import docx as _docx
+        from docx.oxml.ns import qn
+    except ImportError:
+        note("python-docx not installed", "Word checks skipped")
+        return
+
+    import zipfile
+    d = _docx.Document(str(path))
+    xml = zipfile.ZipFile(str(path)).read("word/document.xml").decode(
+        "utf8", "replace")
+    text = re.sub(r"\s+", " ", " ".join(p.text for p in d.paragraphs))
+
+    # --- IEEE layout ------------------------------------------------------
+    cols = []
+    for s in d.sections:
+        c = s._sectPr.find(qn("w:cols"))
+        cols.append(int(c.get(qn("w:num")) or 1) if c is not None else 1)
+    check(cols == [1, 2], "title block full width, body two columns",
+          "columns per section: %s" % cols)
+    if d.sections:
+        s0 = d.sections[0]
+        check(abs(s0.page_width.inches - 8.5) < 0.01
+              and abs(s0.left_margin.inches - 0.625) < 0.01,
+              "Letter page, IEEE margins",
+              "%.2f in wide, %.3f in sides"
+              % (s0.page_width.inches, s0.left_margin.inches))
+
+    # --- IEEE house style -------------------------------------------------
+    check(not any(p.style.name == "Abstract Title" for p in d.paragraphs),
+          "no standalone Abstract heading (IEEE runs it in)")
+    check(text.lstrip().find("Abstract—") >= 0
+          or "Abstract—" in text[:400],
+          "abstract opens with an em-dash run-in")
+
+    # --- nothing lost in conversion ---------------------------------------
+    abstract = next((p for p in d.paragraphs if p.style.name == "Abstract"),
+                    None)
+    if abstract is not None:
+        n = sum(1 for c in abstract._p if c.tag == qn2("m:oMath"))
+        check(n > 0, "abstract kept its inline maths",
+              "%d oMath elements (the two percentages)" % n)
+
+    pdf_txt = ""
+    if (PAPER / "build" / "plain.txt").exists():
+        pdf_txt = io.open(PAPER / "build" / "plain.txt", encoding="utf-8",
+                          errors="replace").read()
+    n_doc = len(set(re.findall(r"\[(\d+)\]", text)))
+    n_pdf = len(set(re.findall(r"\[(\d+)\]", pdf_txt))) if pdf_txt else n_doc
+    check(n_doc == n_pdf, "same distinct citation numbers as the PDF",
+          "Word %d, PDF %d" % (n_doc, n_pdf))
+
+    n_img = len([r for r in d.part.rels.values() if "image" in r.reltype])
+    n_fig = len(re.findall(r"\\includegraphics", io.open(
+        PAPER / "main.tex", encoding="utf-8").read()))
+    check(n_img == n_fig, "every figure embedded",
+          "Word %d, paper %d" % (n_img, n_fig))
+    print("  [info] %d display equations, %d inline maths, %d words"
+          % (xml.count("<m:oMathPara"), xml.count("<m:oMath>"),
+             sum(len(p.text.split()) for p in d.paragraphs)))
+
+
+def qn2(tag):
+    """qn() for the math namespace, which docx.oxml.ns does not carry."""
+    pfx, local = tag.split(":")
+    return "{http://schemas.openxmlformats.org/officeDocument/2006/math}" + local
+
+
 def g_voice(src: str) -> None:
     head("VOICE -- punctuation density and sentence shape")
     print("  Ranges are what published prose occupies, not hard limits. A")
@@ -329,7 +412,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--group", choices=("hygiene", "ieee", "eqnums", "refs",
-                                        "figures", "voice"),
+                                        "figures", "docx", "voice"),
                     help="run one group instead of all")
     ap.add_argument("--quiet", action="store_true",
                     help="suppress output; exit code only")
@@ -345,6 +428,7 @@ def main() -> int:
         "eqnums": lambda: g_eqnums(),
         "refs": lambda: g_refs(src),
         "figures": lambda: g_figures(src),
+        "docx": lambda: g_docx(),
         "voice": lambda: g_voice(src),
     }
     for name, fn in groups.items():
